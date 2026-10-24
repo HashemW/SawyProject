@@ -2,15 +2,19 @@
 
 Done 2026-10-24 by Claude for Hashem. This replaces `clean_txt`, which turned out not to be usable as is (see [data-verification.md](data-verification.md)).
 
-**Result:** all 115 Word files that open are extracted. Compared with Word's own plain text of the same documents, every word is there, in order, and nothing is added: 7,527,899 words of main text and 1,103,822 words in 34,055 footnotes, 0 missing, 0 extra. All 1,708,156 characters typed in glyph fonts are accounted for. The 15,681 Quran quotes typed in glyph fonts are now real text: 15,553 (99.2%) match the Quran letter for letter as quoted, 109 more once stray characters standing in for glyphs are allowed for, and 19 need a human decision (below). 15,264 honorifics typed as glyphs are written out in words.
+**Result:** all 116 Word files are extracted (one, `التعددية السياسية.doc`, from a repaired copy; see [Repaired source](#repaired-source)). Compared with Word's own plain text of the same documents, every word is there, in order, and nothing is added: 7,566,612 words of main text and 1,104,810 words in 34,158 footnotes, 0 missing, 0 extra. All 1,712,929 characters typed in glyph fonts are accounted for. The 15,735 Quran quotes typed in glyph fonts are now real text: 15,607 (99.2%) match the Quran letter for letter as quoted, 109 more once stray characters standing in for glyphs are allowed for, and 19 need a human decision (below). 15,331 honorifics typed as glyphs are written out in words.
 
 The output is local (`data/work/extract/`, gitignored because it holds the books). Reproduce with:
 
 ```
+python -I -X utf8 scripts\repair_doc.py --src "data\raw\sawi_material\التعددية السياسية.doc" --out "data\work\repaired\التعددية السياسية.doc"
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\word_export.ps1 -InputDir data\raw\sawi_material -OutDir data\work\word
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\word_export.ps1 -InputDir data\work\repaired -OutDir data\work\word -Force
 python -I -X utf8 scripts\extract_text.py --word data\work\word --quran data\raw\quran\quran-uthmani.txt --out data\work\extract
 python -I -X utf8 scripts\check_extract.py --word data\work\word --extract data\work\extract
 ```
+
+The first export records the damaged file as an error; the second replaces it with the repaired copy.
 
 ## What you get
 
@@ -31,7 +35,7 @@ Three kinds of text are not ordinary characters in these files.
 15,681 quotes are typed in the HQPB1–5 or Othmani1–5 fonts (the same glyph set), plus 33 phrase glyphs (the basmala, «قال تعالى:», «صدق الله العظيم»). These fonts draw the Madinah mushaf piece by piece: one character per letter shape, vowel mark, verse-end ornament or digit. Read as text, a quote is nonsense.
 
 1. **Letters.** Every glyph of fonts 1–3 was labelled with the letter it draws. The labels were read off the fonts (installed on Hashem's PC) and then checked by aligning 11,552 referenced quotes with the Tanzil text: 11,500 then read exactly as the cited verses, and every label agrees with at least 97% of its aligned occurrences (`scripts/quran_glyphs.py`). Vowels and other marks are not decoded: they come from Tanzil.
-2. **Placement.** The letters of each quote are looked up in Tanzil's Uthmani text: first in the verses the Sheikh cites after the quote (12,985 found there), then 3 verses either side (199), then anywhere (2,355: no reference, or one that names other verses). The match must be letter for letter; verse-end ornaments inside a quote must sit at the end of the verse they number. The quote is then written as Tanzil's words for exactly that span (a partial quote stays partial), between the source's brackets, with the verse-end ornaments the source shows (`۝` and the number) and Tanzil's pause marks where the source has them.
+2. **Placement.** The letters of each quote are looked up in Tanzil's Uthmani text: first in the verses the Sheikh cites after the quote (13,028 exact quotes found there), then 3 verses either side (199), then anywhere (2,366: no reference, or one that names other verses). The match must be letter for letter; verse-end ornaments inside a quote must sit at the end of the verse they number. The quote is then written as Tanzil's words for exactly that span (a partial quote stays partial), between the source's brackets, with the verse-end ornaments the source shows (`۝` and the number) and Tanzil's pause marks where the source has them.
 3. **What the glyph program and the typists did to some quotes**, each still matched letter for letter: quotes starting inside a word (﴿وَلَمْ تُؤْمِن﴾ from أَوَلَمْ, 14), words the glyph program joins where Tanzil does not (بعدما, 6), words typed without a space, which come out swapped (29), neighbouring words stored in swapped pairs (4) or a whole quote in visual order (1), and brackets stored inside the quote (after its first word and before its last, in several Othmani-font books). 109 quotes have stray characters (`.` `/` `،` `:`) where a glyph should be: the glyph's code read as an ordinary character (`.` is code 0x2E, a kāf shape; `/` is 0x2F, a bāʾ shape). They are matched with each stray character standing for the missing glyph, near the cited verses (or anywhere if the quote is long and only one place fits).
 4. **Vowels.** Where the same letters occur in several places with different vowels (one-word quotes such as ﴿كَانَ﴾ in a grammar remark), the quote's own glyphs decide: the same glyph sequence read in quotes identified without doubt shows which vowels it carries. 77 quotes were settled this way, 6 remain open.
 5. **Quotes that are wrong in the source** (letters or a word missing, e.g. 77:26 typed without أَحْيَآءً) are placed only within the verses the Sheikh cites, written with the correct Tanzil text, and listed for review. A misquoted verse is never printed as Quran.
@@ -70,11 +74,11 @@ Bullets in Symbol, Wingdings and similar fonts become `•`, Symbol's tick `√`
 
 | | In Word's text | Missing from the extraction | Extra |
 |---|---|---|---|
-| Main text (paragraphs, table cells, tables of contents) | 7,527,899 words | 0 | 0 |
-| Footnotes | 34,055 notes, 1,103,822 words | 0 | 0 |
+| Main text (paragraphs, table cells, tables of contents) | 7,566,612 words | 0 | 0 |
+| Footnotes | 34,158 notes, 1,104,810 words | 0 | 0 |
 | Text boxes | 332 words | 0 | 0 |
 
-All 1,708,156 glyph-font characters are accounted for; 0 of 115 files differ. The check allows for three things Word's own text does: it shows text formatted as all caps in capitals (tables of contents), so the extraction does too; its copy of a footnote typed without an automatic mark drops the hand-written number; it lists text boxes in its own order.
+All 1,712,929 glyph-font characters are accounted for; 0 of 116 files differ. The check allows for three things Word's own text does: it shows text formatted as all caps in capitals (tables of contents), so the extraction does too; its copy of a footnote typed without an automatic mark drops the hand-written number; it lists text boxes in its own order.
 
 ## For review
 
@@ -89,14 +93,19 @@ Left out (19). Decision (Hashem, 2026-10-24): the fatawa that contain these quot
 For information:
 
 - **109 repaired quotes** (stray characters standing in for glyphs). A random dozen were checked by eye: all correct.
-- **35 quotes** whose glyphs lack a mark Tanzil has at that place: contextual ones the glyph program never draws (فَمَنِ before a hamzat al-wasl, وَمَآ before a hamza) and a few shaddas missing in the source (إِن for إِنَّ). The output has Tanzil's text.
+- **36 quotes** whose glyphs lack a mark Tanzil has at that place: contextual ones the glyph program never draws (فَمَنِ before a hamzat al-wasl, وَمَآ before a hamza) and a few shaddas missing in the source (إِن for إِنَّ). The output has Tanzil's text.
 - **74 quotes** whose written reference names other verses: typos and reversed digits (`[النساء: 06 - 16]` for 60–61 in `الصارم`). The quote text is right; the Sheikh's reference is left as written, and the true verses are in the JSON.
 
 Possible improvement: decoding the vowel-mark glyphs (fonts 4–5) would settle the 6 ambiguous quotes and check every quote's vowels directly.
 
+## Repaired source
+
+`التعددية السياسية.doc` (a treatise, 2004) is damaged: Word refuses it ("Office has detected a problem with this file"), Google Docs opens it as an empty page, and Drive keeps no other version. Its text is intact; one entry of its character-formatting table points at the file header instead of a formatting page, so 41 characters have no formatting. They are the start of a quote of 58:22 typed in the Othmani glyph fonts, so what is missing is which font each glyph is drawn in.
+
+`scripts/repair_doc.py` writes a repaired copy (the original is never changed). It rebuilds the missing page from evidence that agrees three ways: the same paragraph quotes the verse a few lines earlier, intact; the same words in 11 other books always carry the same fonts (`scripts/find_glyph_fonts.py`); and the rest of the damaged quote matches them glyph for glyph. 344 bytes change. Word then opens the copy normally, its plain text equals the text stored in the original (230,787 characters), and the extraction check passes: 54 quotes, all exact, 67 honorifics. Full account: [report.md, section 5](report.md#5-step-1c-repairing-the-damaged-source).
+
 ## Not covered
 
-- `التعددية السياسية.doc`: Office refuses to open it ("Office has detected a problem with this file"). It needs a fresh copy; it is a treatise, not fatawa.
 - Pictures are not read. The only ones are small decorations next to headings.
 
 ## Quran text

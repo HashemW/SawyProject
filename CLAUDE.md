@@ -2,7 +2,7 @@
 
 A voice chatbot that answers people's questions **only** with the fatawa of Dr. Salah Al-Sawy (أ.د. صلاح الصاوي), spoken in his own voice cloned in ElevenLabs. The Sheikh asked for this project.
 
-**Status:** the voice is cloned ("sawy v2"). An ElevenLabs agent prototype answers using ElevenLabs' built-in knowledge-base RAG, with an LLM writing the answers (Gemini Flash in the Nov 2025 notes). Those answers are generated rather than quoted, and testing was weak. This repo builds our own retrieval pipeline (the "professional RAG" route in the team notes) and keeps ElevenLabs for the voice. The books' text has been extracted and checked (step 1 below); the next step is one record per fatwa.
+**Status:** the voice is cloned ("sawy v2"). An ElevenLabs agent prototype answers using ElevenLabs' built-in knowledge-base RAG, with an LLM writing the answers (Gemini Flash in the Nov 2025 notes). Those answers are generated rather than quoted, and testing was weak. This repo builds our own retrieval pipeline (the "professional RAG" route in the team notes) and keeps ElevenLabs for the voice. The text of all 116 books has been extracted and checked (step 1 below; one damaged file was repaired first); the next step is one record per fatwa, treatise section and video fatwa. Every step is written up in `docs/report.md`.
 
 ## Core rule: only the Sheikh's words
 
@@ -25,7 +25,8 @@ The older system prompt in Drive (`Prompt Engineering/Prompt`) allowed exception
 
 | What | Where | Notes |
 |---|---|---|
-| Original books (`.doc`/`.docx`) — **the source of truth** | Drive `sawi_material`: https://drive.google.com/drive/folders/18PA1HGQ28p13M7sZQDInA_0wMhGo6T8B | 116 Word files (2003–2023), plus folders `Progress/`, `Prompt Engineering/`, `YouTube Fatwas/`. Per fiqh chapter `01`–`23` there are usually three files: `NN book.doc` (2011), `NN <chapter>.doc` (2020–21) and `NN (2) <chapter>.docx` (2022–23 additions, some marked `تحت الإجراء`), plus `24`–`32 book.doc`, volumes 33/35/36 (headings only) and ~30 standalone books. Expect heavy overlap between variants; dedupe before indexing. `التعددية السياسية.doc` will not open in Office (file validation error). |
+| Original books (`.doc`/`.docx`) — **the source of truth** | Drive `sawi_material`: https://drive.google.com/drive/folders/18PA1HGQ28p13M7sZQDInA_0wMhGo6T8B | 116 Word files (2003–2023), plus folders `Progress/`, `Prompt Engineering/`, `YouTube Fatwas/`. Per fiqh chapter `01`–`23` there are usually three files: `NN book.doc` (2011), `NN <chapter>.doc` (2020–21) and `NN (2) <chapter>.docx` (2022–23 additions, some marked `تحت الإجراء`), plus `24`–`32 book.doc`, volumes 33/35/36 (headings only) and ~30 standalone books. Expect heavy overlap between variants; dedupe before indexing. Chapter numbers 16–18 differ between the 2020–21 and 2022–23 files (match by content, not number). `التعددية السياسية.doc` is damaged (Word and Google Docs refuse it; Drive has no other version): `scripts/repair_doc.py` writes a repaired copy, see `docs/extraction.md`. |
+| Video fatawa | Drive `sawi_material/YouTube Fatwas/` | `metadata` sheet: 1,308 clips (video ID, Arabic title, duration in seconds, URL) from his live fatwa programmes, 2020–2024, each titled with one question, mostly under 4 minutes. `open_ai_whisper_1/`: Whisper machine transcripts per clip (`<id>-dn.json`, `<id>-dn.srt`, made by a teammate in Feb 2025). Not yet downloaded or checked; machine transcripts are not verbatim text. |
 | Converted text (Dec 2025) — **do not use** | Drive `clean_txt` (Hashem): https://drive.google.com/drive/folders/1ZqNNZKHYjJP1768VDBWNyEJCUGrl68SP | 115 `.txt` files, one per source. Verified 2026-10-24 against Word (`docs/data-verification.md`): all 29,639 footnotes dropped, most tables dropped, runs tagged with a symbol font dropped (whole sections lost in some books), Quran quotes replaced by the full verse, duplicated or deleted, two files failed. The plain prose is otherwise exact. |
 | Quran text | Tanzil Uthmani v1.1, `data/raw/quran/quran-uthmani.txt` (downloaded 2026-10-24 from https://tanzil.net/download/) | Used to identify each quote typed in glyph fonts and to write it as text. Terms accepted with Hashem's OK: verbatim copies only, and the app must credit the Tanzil Project with a link to tanzil.net. |
 | Fatwa website | https://fatawaalsawy.com | Large archive. The team asked the site manager for the data; prefer an export over scraping. |
@@ -41,12 +42,12 @@ Reading the sources: `scripts/word_export.ps1` drives Word (read-only, macros of
 
 ## Planned pipeline
 
-1. **Ingest** (done, `docs/extraction.md`): `scripts/word_export.ps1` (Word is installed on Hashem's PC; LibreOffice is not), then `scripts/extract_text.py`, not `clean_txt`. Keeps all text, tables, list numbers and footnotes; Quran glyph quotes become Tanzil's text of exactly the words quoted, honorific glyphs become their words. `scripts/check_extract.py` is the acceptance test: every word of Word's own text, in order, nothing extra. Quotes it could not take verbatim are listed in `data/work/extract/report.md`.
-2. **Segment** (next; not started) into one record per fatwa, from `data/work/extract/json/`:
+1. **Ingest** (done, `docs/extraction.md`): `scripts/repair_doc.py` for the one damaged file, `scripts/word_export.ps1` (Word is installed on Hashem's PC; LibreOffice is not), then `scripts/extract_text.py`, not `clean_txt`. Keeps all text, tables, list numbers and footnotes; Quran glyph quotes become Tanzil's text of exactly the words quoted, honorific glyphs become their words. `scripts/check_extract.py` is the acceptance test: every word of Word's own text, in order, nothing extra. Quotes it could not take verbatim are listed in `data/work/extract/report.md`.
+2. **Segment** (next; not started) into one record per fatwa, from `data/work/extract/json/`. Treatises and books that are not fatawa become one record per section (the passage under a heading), with the same fields minus the question; video fatawa come after the books (see Open decisions).
    - Boundaries: a fatwa runs title → asker's question → `الجواب` → answer → `والله تعالى أعلى وأعلم`. In the 2020–23 chapter files titles carry Word heading styles (`heading 3`); check what the 2011 `book` volumes, the 2020–21 chapter files and the standalone books use before relying on styles. Front matter, introductions and tables of contents are not fatawa.
    - Record: `{id, title, question, answer, notes, collection, chapter, source_file}`, text exactly as extracted. Footnotes go with the fatwa that references them; keep the `quran` and `honorific` spans (TTS needs the Quran spans).
    - Leave out every fatwa that contains one of the 19 flagged quotes (span `status` `unresolved`, `ambiguous` or `corrected`); list them in the segmentation report.
-   - Dedupe: most fatawa exist in several editions (`NN book.doc` 2011, `NN <chapter>.doc` 2020–21, `NN (2) <chapter>.docx` 2022–23, volumes 24–32). Keep one copy per fatwa (which one is an open decision) and record where the others are.
+   - Dedupe: most fatawa exist in several editions (`NN book.doc` 2011, `NN <chapter>.doc` 2020–21, `NN (2) <chapter>.docx` 2022–23, volumes 24–32). Keep the newest copy, except that a copy in a file marked `تحت الإجراء` gives way to its 2020–21 copy (see Decisions), and record where the others are.
    - Check: every block ends up in exactly one record or in a listed non-fatwa part; nothing is dropped silently.
    - Then a separate normalized copy for search only: strip tashkeel, tatweel and `()`, and unify ا/أ/إ/آ, ى/ي, ة/ه.
 3. **Index** with hybrid retrieval: Arabic-aware BM25 plus multilingual embeddings, over title+question and over the answer. User questions usually resemble the original askers' questions.
@@ -54,7 +55,7 @@ Reading the sources: `scripts/word_export.ps1` drives Word (read-only, macros of
 5. **Voice**: ElevenLabs TTS ("sawy v2") on the verbatim text, cached by text hash so each passage is paid for once and can be reviewed before release. Quran quotations need special handling: mispronouncing Quran in his voice is unacceptable.
 6. **Evaluate** with the Golden Dataset, paraphrases of existing questions (the source fatwa should come back), questions that must get the abstain message, and injection attempts. Target: zero non-Sheikh text in answers.
 
-Front end: either keep the ElevenLabs agent for voice in/out and point it at this backend as a custom LLM, or build our own app that calls TTS directly.
+Front end (decided): the ElevenLabs agent for now, for voice in and out, pointed at this backend as a custom LLM; later our own app that calls TTS directly. Through the agent every answer is synthesized live, so step 5's cached, reviewed audio only fully applies in our own app; the agent phase needs its own plan for checking Quran pronunciation.
 
 ## Decisions
 
@@ -62,13 +63,17 @@ Front end: either keep the ElevenLabs agent for voice in/out and point it at thi
 - **Languages** (2026-10-24): people may ask in any language; the answer is always the Sheikh's Arabic text. Translation is either the user's own tool or an optional machine translation the bot shows as text, labelled as such. A translation is never spoken in his voice.
 - **Quran text** (2026-10-24): quotes are written with Tanzil's Uthmani text of exactly the quoted words (Hashem accepted Tanzil's terms). Where the document's own quote is garbled or misses a word, the cited verses' correct text is used and the quote is flagged for review; it is never printed as a misquote.
 - **Flagged quotes** (2026-10-24): the fatawa containing any of the 19 quotes that need a decision (1 unreadable, 6 with undecided vowels, 12 wrong in the source) are left out of the records entirely. The 109 repaired quotes (stray characters standing in for glyphs, words matched letter for letter) stay.
+- **Scope** (2026-10-24): fatawa, his treatises and his lectures (video fatawa) all go in. Clean data first: the books are segmented and checked before anything is indexed.
+- **Duplicates** (2026-10-24): keep the newest edition of each fatwa. Where the newest copy is in a 2022–23 file marked `تحت الإجراء` (in progress; 9 files: chapters 04, 05, 07, 08, 10, 14, 15, 17, 21), keep the 2020–21 copy instead.
+- **Specific cases** (2026-10-24): questions about a person's own case (a particular divorce, inheritance shares, …) go to a person, unless a fatwa matches every fact of the case, which is almost never. The bot may still offer related fatawa from his books, verbatim and cited, but never a ruling that is not in his books.
+- **Front end** (2026-10-24): the ElevenLabs agent for now; our own app later.
+- **Damaged source** (2026-10-24): `التعددية السياسية.doc` is used through the repaired copy from `scripts/repair_doc.py`, which rebuilds 41 characters' lost formatting (fonts of a 58:22 glyph quote) from an intact copy of the same verse earlier in the same paragraph, confirmed by the same words in 11 other books. The text itself is untouched (Word's text of the copy equals the text stored in the original).
 
 ## Open decisions (ask; don't assume)
 
-- Scope: fatawa only, or also his treatises and lectures?
-- Duplicates: when a fatwa appears in several editions, which copy is kept (the newest edition is the natural default)?
-- Topics that should always be referred to a person (e.g., specific divorce cases, inheritance shares)?
-- Front end: ElevenLabs agent with a custom LLM, or our own app?
+- Fatawa that exist only in a `تحت الإجراء` file (no 2020–21 copy): keep them, or leave them out until the file is finished?
+- Specific cases: "the bot can give relevant fatawa and talk about it". Under the core rule the bot cannot add its own words in his voice. Is "talk about it" a fixed, pre-approved referral message plus the verbatim fatawa, or also AI-written text shown on screen, labelled as such and never spoken in his voice?
+- Video fatawa: answer by playing the original clip (his real voice, no TTS), or speak a transcript with the cloned voice? Whisper transcripts contain recognition errors, so a spoken or displayed transcript needs a human check first; for search alone they can be used as they are.
 
 ## Links
 
@@ -79,6 +84,7 @@ Front end: either keep the ElevenLabs agent for voice in/out and point it at thi
 
 ## Conventions
 
+- **Keep `docs/report.md` current.** It is the project's technical report, written like a research paper from step 0 onward: for each step, what was done, how, how it was checked, the numbers, problems met and decisions taken (with dates). Update it in the same commit as the work; the step documents (`docs/data-verification.md`, `docs/extraction.md`, …) hold the full detail.
 - The books stay in Drive, not in git: everything under `data/` is gitignored (`data/raw/` downloads, `data/work/` derived files).
 - Downloading from Drive: the Google Drive connector lists only files Hashem has opened (1 of the 116 sources), so use Chrome. Drive's select-all only covers rows that have loaded (scroll to the end first), and Chrome blocks repeat zip downloads in one tab; use a fresh tab per zip.
 - UTF-8 everywhere. On Windows, run Python with `PYTHONUTF8=1` (or `-X utf8`); otherwise piped output and file I/O default to cp1252 and fail on Arabic. `python -I` leaves the script's folder off the import path, so scripts that import a sibling module add it themselves.
