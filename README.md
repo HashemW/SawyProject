@@ -17,7 +17,7 @@ question
 - [x] Voice cloned in ElevenLabs ("sawy v2")
 - [x] Prototype ElevenLabs agent (built-in RAG)
 - [x] Source documents collected (116 Word files) and the first-pass text (`clean_txt`) checked against them: not usable as is, see [docs/data-verification.md](docs/data-verification.md)
-- [ ] Re-extract the text from Word, keeping footnotes, tables and the exact Quran quotes
+- [x] Text re-extracted from Word with footnotes, tables, honorifics and the exact Quran quotes, and checked word for word against Word's own text: [docs/extraction.md](docs/extraction.md)
 - [ ] Split the text into one record per fatwa
 - [ ] Search index and strict answer selection
 - [ ] Voice output with audio caching

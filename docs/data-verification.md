@@ -14,6 +14,8 @@ Checked 2026-10-24 by Claude for Hashem.
 | **Tables mostly dropped.** | 1,366 of 3,294 table cells kept (tables of contents not counted) | quoted poetry laid out in tables, board lists, tables inside fatawa |
 | **Two files failed.** | `تساؤلات أمريكية` kept 32 of 26,532 words; `التعددية السياسية` has no text file (Office refuses to open the source; it needs a fresh copy) | |
 
+Found later, during the re-extraction ([extraction.md](extraction.md)): about 4,500 honorifics drawn with the font `CTraditional Arabic` on ordinary characters (`ب` for رضي الله عنهما, `ل` for رضي الله عنها, `:` for رحمه الله) come through in `clean_txt` as stray letters or colons («عباس ب» 74 times).
+
 Overall, outside Quran passages and tables of contents the sources hold 7,361,790 Arabic words, and 55,957 of them (0.76%) are missing from `clean_txt`. The losses are concentrated in the files above, and 31 of the 115 files have none. The ordinary prose of the fatawa is otherwise exact.
 
 Not problems: every file is valid UTF-8 with no garbage characters; `clean_txt` invented nothing, since only 199 of its words appear nowhere in the sources; tables of contents were dropped in most files and kept in the 2022–23 `.docx` ones, but they only repeat headings; volumes 33, 35 and 36 are empty templates in the source too.

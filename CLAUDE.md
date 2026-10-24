@@ -27,19 +27,21 @@ The older system prompt in Drive (`Prompt Engineering/Prompt`) allowed exception
 |---|---|---|
 | Original books (`.doc`/`.docx`) — **the source of truth** | Drive `sawi_material`: https://drive.google.com/drive/folders/18PA1HGQ28p13M7sZQDInA_0wMhGo6T8B | 116 Word files (2003–2023), plus folders `Progress/`, `Prompt Engineering/`, `YouTube Fatwas/`. Per fiqh chapter `01`–`23` there are usually three files: `NN book.doc` (2011), `NN <chapter>.doc` (2020–21) and `NN (2) <chapter>.docx` (2022–23 additions, some marked `تحت الإجراء`), plus `24`–`32 book.doc`, volumes 33/35/36 (headings only) and ~30 standalone books. Expect heavy overlap between variants; dedupe before indexing. `التعددية السياسية.doc` will not open in Office (file validation error). |
 | Converted text (Dec 2025) — **do not use** | Drive `clean_txt` (Hashem): https://drive.google.com/drive/folders/1ZqNNZKHYjJP1768VDBWNyEJCUGrl68SP | 115 `.txt` files, one per source. Verified 2026-10-24 against Word (`docs/data-verification.md`): all 29,639 footnotes dropped, most tables dropped, runs tagged with a symbol font dropped (whole sections lost in some books), Quran quotes replaced by the full verse, duplicated or deleted, two files failed. The plain prose is otherwise exact. |
+| Quran text | Tanzil Uthmani v1.1, `data/raw/quran/quran-uthmani.txt` (downloaded 2026-10-24 from https://tanzil.net/download/) | Used to identify each quote typed in glyph fonts and to write it as text. Terms accepted with Hashem's OK: verbatim copies only, and the app must credit the Tanzil Project with a link to tanzil.net. |
 | Fatwa website | https://fatawaalsawy.com | Large archive. The team asked the site manager for the data; prefer an export over scraping. |
 | Voice training audio | `sawi.mp3`, ~2 h of khutbahs: https://drive.google.com/file/d/1DcygMVxmADH2B7EGxDp54cTsoOG6Hql8 | Already used for the clone. |
 
 What's inside the Word sources:
 - Fatawa (e.g. `03 (2) كتاب العلم.doc`) run: title line → the asker's question → `الجواب` → `بسم الله الرحمن الرحيم` → `الحمد لله والصلاة والسلام على رسول الله…` → answer → `والله تعالى أعلى وأعلم.` Footnotes (hadith sources etc.) are real Word footnotes; their reference marks sit inside literal parentheses `(…)`. Books open with a header and end with a table of contents (`الفهرس`).
-- **Quran is not Unicode text.** Verses are glyphs in Quran fonts: `<w:sym>` characters in HQPB1–5, or private-use characters (U+F0xx) in Othmani1–5, with AGA Arabesque ornamental brackets. Word's plain text shows them as `(` or nothing. Decoding needs the glyph → text mapping; the cited `[سورة: آية]` follows each passage, but the Sheikh often quotes only part of a verse.
-- Some runs carry a symbol font (AGA Arabesque) in the Latin-font slot while containing ordinary Arabic; any filter on font names will drop real text.
+- **Quran is not Unicode text.** Verses are glyphs in Quran fonts: `<w:sym>` characters in HQPB1–5, or private-use characters (U+F0xx) in Othmani1–5 (same codes), with ornamental brackets (HQPB2 or AGA Arabesque). Word's plain text shows them as `(` or nothing. HQPB1–5 are installed on Hashem's PC. `scripts/quran_glyphs.py` reads each quote's letters, finds them in the Tanzil text (cited verses first) and writes Tanzil's words for exactly that span; see `docs/extraction.md`. The Sheikh often quotes only part of a verse.
+- **Honorifics are glyphs too.** AGA Arabesque symbols (`U` عز وجل, `r`/`e` صلى الله عليه وسلم, `t` رضي الله عنه …) and the font `CTraditional Arabic`, which draws honorifics on ordinary characters (`ب` رضي الله عنهما, `ل` رضي الله عنها, `:` رحمه الله …). Read as plain text they become stray letters.
+- Some runs carry a symbol font (AGA Arabesque) in the Latin-font slot while containing ordinary Arabic; any filter on font names will drop real text. `AF_Najed`, `AL-Mateen` and the like are ordinary display fonts.
 
-Reading the sources: `scripts/word_export.ps1` drives Word (read-only, macros off, never saves; Word's SaveAs hangs on these files) and writes main text, footnotes and the flat XML. `scripts/verify_txt.py` rebuilds the visible text from that XML and checks any conversion against it.
+Reading the sources: `scripts/word_export.ps1` drives Word (read-only, macros off, never saves; Word's SaveAs hangs on these files) and writes main text, footnotes and the flat XML. `scripts/extract_text.py` turns the XML into the text we use (`data/work/extract/`), and `scripts/check_extract.py` is its acceptance test against Word's own text. `scripts/verify_txt.py` was used to check `clean_txt`.
 
 ## Planned pipeline
 
-1. **Ingest** from the Word sources via `scripts/word_export.ps1` (Word is installed on Hashem's PC; LibreOffice is not), not from `clean_txt`. Keep all text, tables, list numbers and footnotes; decode Quran glyphs to exactly the words quoted. `scripts/verify_txt.py` is the acceptance test: 100% of the source's words, nothing extra.
+1. **Ingest** (done, `docs/extraction.md`): `scripts/word_export.ps1` (Word is installed on Hashem's PC; LibreOffice is not), then `scripts/extract_text.py`, not `clean_txt`. Keeps all text, tables, list numbers and footnotes; Quran glyph quotes become Tanzil's text of exactly the words quoted, honorific glyphs become their words. `scripts/check_extract.py` is the acceptance test: every word of Word's own text, in order, nothing extra. Quotes it could not take verbatim are listed in `data/work/extract/report.md` for a human to check.
 2. **Segment** into one record per fatwa: `{id, title, question, answer, collection, chapter, source_file}`. Keep the original text exactly as written for display and voice. Build a separate normalized copy for search only: strip tashkeel, tatweel and `()`, and unify ا/أ/إ/آ, ى/ي, ة/ه.
 3. **Index** with hybrid retrieval: Arabic-aware BM25 plus multilingual embeddings, over title+question and over the answer. User questions usually resemble the original askers' questions.
 4. **Select**: take the top-k, rerank, then run a strict LLM check of whether a candidate answers the question. A match returns the verbatim fatwa with its citation; no match returns the abstain message.
@@ -52,6 +54,7 @@ Front end: either keep the ElevenLabs agent for voice in/out and point it at thi
 
 - **Verbatim only** (confirmed 2026-10-24): answers are the Sheikh's text word for word, never summarized.
 - **Languages** (2026-10-24): people may ask in any language; the answer is always the Sheikh's Arabic text. Translation is either the user's own tool or an optional machine translation the bot shows as text, labelled as such. A translation is never spoken in his voice.
+- **Quran text** (2026-10-24): quotes are written with Tanzil's Uthmani text of exactly the quoted words (Hashem accepted Tanzil's terms). Where the document's own quote is garbled or misses a word, the cited verses' correct text is used and the quote is flagged for review; it is never printed as a misquote.
 
 ## Open decisions (ask; don't assume)
 
@@ -70,4 +73,4 @@ Front end: either keep the ElevenLabs agent for voice in/out and point it at thi
 
 - The books stay in Drive, not in git: everything under `data/` is gitignored (`data/raw/` downloads, `data/work/` derived files).
 - Downloading from Drive: the Google Drive connector lists only files Hashem has opened (1 of the 116 sources), so use Chrome. Drive's select-all only covers rows that have loaded (scroll to the end first), and Chrome blocks repeat zip downloads in one tab; use a fresh tab per zip.
-- UTF-8 everywhere. On Windows, run Python with `PYTHONUTF8=1` (or `-X utf8`); otherwise piped output and file I/O default to cp1252 and fail on Arabic.
+- UTF-8 everywhere. On Windows, run Python with `PYTHONUTF8=1` (or `-X utf8`); otherwise piped output and file I/O default to cp1252 and fail on Arabic. `python -I` leaves the script's folder off the import path, so scripts that import a sibling module add it themselves.

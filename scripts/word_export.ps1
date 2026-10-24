@@ -10,6 +10,8 @@
     notes\<name>.txt      footnote then endnote texts, one per line: "<n><TAB><text>"
     frames\<name>.txt     text inside text boxes/frames (only if there is any)
     xml\<name>.xml.gz     the document's WordprocessingML (flat OPC), for structure audits
+    final\<name>.xml.gz   the same after tracked changes are accepted and list numbers converted
+                          to text, i.e. the state text\ is read from; extract_text.py reads this
   plus inventory\<name>.json per file, merged into word_inventory.json. Files that already
   have an inventory entry are skipped unless -Force, so the script can be re-run as more
   source files arrive.
@@ -41,7 +43,7 @@ $InputDir = (Resolve-Path -LiteralPath $InputDir).Path
 New-Item -ItemType Directory -Force -Path $OutDir | Out-Null
 $OutDir = (Resolve-Path -LiteralPath $OutDir).Path
 $dirs = @{}
-foreach ($d in 'text', 'notes', 'frames', 'xml', 'inventory') {
+foreach ($d in 'text', 'notes', 'frames', 'xml', 'final', 'inventory') {
     $dirs[$d] = Join-Path $OutDir $d
     New-Item -ItemType Directory -Force -Path $dirs[$d] | Out-Null
 }
@@ -142,6 +144,7 @@ try {
             # In memory only; the document is closed without saving.
             if ($info.revisions -gt 0) { $doc.Revisions.AcceptAll() }
             if ($info.list_paragraphs -gt 0) { $doc.ConvertNumbersToText() }
+            Write-Gzip (Join-Path $dirs.final ($f.Name + '.xml.gz')) $doc.WordOpenXML
 
             $main = $doc.Content
             $main.TextRetrievalMode.IncludeFieldCodes = $false
@@ -156,7 +159,10 @@ try {
             foreach ($coll in @($doc.Footnotes, $doc.Endnotes)) {
                 for ($k = 1; $k -le $coll.Count; $k++) {
                     $n++
-                    [void]$notes.Append($n).Append("`t").Append(($coll.Item($k).Range.Text -replace '[\r\n]+', ' ')).Append("`n")
+                    $r = $coll.Item($k).Range
+                    $r.TextRetrievalMode.IncludeFieldCodes = $false
+                    $r.TextRetrievalMode.IncludeHiddenText = $false
+                    [void]$notes.Append($n).Append("`t").Append(($r.Text -replace '[\r\n]+', ' ')).Append("`n")
                 }
             }
             [IO.File]::WriteAllText((Join-Path $dirs.notes ($f.Name + '.txt')), $notes.ToString(), $utf8)
