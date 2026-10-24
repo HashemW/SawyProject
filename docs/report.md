@@ -4,7 +4,7 @@ A running record of how the fatawa and writings of Dr. Salah Al-Sawy (أ.د. ص�
 
 Hashem, with Claude. Last updated 2026-10-24.
 
-**Status.** Step 1 (getting the text out of the sources) is complete for all 116 Word files. One damaged file had to be repaired first (section 5). Step 2 (one record per fatwa, treatise section and video fatwa) is next.
+**Status.** Step 1 (getting the text out of the sources) is complete for all 116 Word files; one damaged file had to be repaired first (section 5). Step 2a is complete: the fatwa encyclopedia is split into records and its editions deduplicated, giving 12,779 distinct fatawa (section 8). Step 2b, the standalone books and treatises, is next.
 
 ## Contents
 
@@ -15,7 +15,8 @@ Hashem, with Claude. Last updated 2026-10-24.
 5. [Step 1c: repairing the damaged source](#5-step-1c-repairing-the-damaged-source)
 6. [Decisions](#6-decisions)
 7. [Open questions](#7-open-questions)
-8. [Next: step 2, records](#8-next-step-2-records)
+8. [Step 2a: one record per fatwa (the encyclopedia)](#8-step-2a-one-record-per-fatwa-the-encyclopedia)
+9. [Next: step 2b, the standalone books](#9-next-step-2b-the-standalone-books)
 - [Appendix A: reproducing the data](#appendix-a-reproducing-the-data)
 - [Appendix B: repository map](#appendix-b-repository-map)
 - [Appendix C: glossary](#appendix-c-glossary)
@@ -35,6 +36,8 @@ Because everything the assistant says comes out in his voice, any sentence it ge
 3. Every answer cites the collection, chapter, fatwa title and the original question, so the listener can judge whether it fits their case.
 4. A language model may choose, never write. It normalizes the question, ranks candidate fatawa and names the one that answers it, or none. Its output is an ID, so even a manipulated question can at worst select the wrong fatwa or none; it cannot put new words in his mouth. Everything that is not a fatwa (greeting, "not found", disclaimers) comes from a short list of fixed, pre-approved messages.
 
+One exception was decided later (section 6): for questions about the asker's own case, which go to a person, the bot may show AI-written commentary on related fatawa as labelled text on screen, never in his voice.
+
 ### 1.3 Starting point
 
 Before this repository, the team had cloned the voice and built a prototype ElevenLabs agent. The agent used ElevenLabs' built-in knowledge-base retrieval, and a general language model wrote each answer from what it retrieved (Gemini Flash in the November 2025 notes; Gemini 2.0 Flash and GPT-5 were also tried). The answers were generated, not quoted, so they could not be guaranteed to be his words, and testing was thin. An older system prompt also allowed exceptions (the majority opinion, calculations, "universally agreed" matters, free advice); these conflict with the rule above and were dropped.
@@ -48,7 +51,7 @@ The work replaces the generated answers with retrieval of verbatim passages and 
 | Step | What | Status |
 |---|---|---|
 | 1 | Ingest: get every word of the sources out exactly, including footnotes, tables, Quran quotes and honorifics | done (sections 3–5) |
-| 2 | Segment: one record per fatwa (title, question, answer, notes, source), one per treatise section, one per video fatwa; dedupe across editions | next (section 8) |
+| 2 | Segment: one record per fatwa (title, question, answer, notes, source) and one per treatise section; dedupe across editions | encyclopedia done (section 8); standalone books next (section 9) |
 | 3 | Index: Arabic-aware keyword search plus multilingual embeddings, over questions and answers | |
 | 4 | Select: rerank candidates, then a strict check that a candidate answers the question; otherwise the fixed "not found" message | |
 | 5 | Voice: TTS of the verbatim text, cached and reviewed per passage; Quran quotes need special care | |
@@ -64,8 +67,7 @@ The source of truth is the Drive folder `sawi_material`: 116 Word files (`.doc` 
 
 | Group | Files | Notes |
 |---|---|---|
-| Fatwa encyclopedia, chapters 01–23 | usually three files per chapter: `NN book.doc` (2011), `NN <chapter>.doc` (2020–21), `NN (2) <chapter>.docx` (2022–23) | `موسوعة فتاوى المغتربين`, by fiqh chapter (creed, politics, knowledge, purification, prayer, … miscellaneous). Chapter 01 also has three volume files (`01-1`…`01-3`); chapter 04's newest file is numbered `(3)`. Nine 2022–23 files are marked `تحت الإجراء` (in progress): chapters 04, 05, 07, 08, 10, 14, 15, 17, 21. Chapter numbers 16–18 differ between the 2020–21 and 2022–23 files. The dates of each group are to be confirmed in step 2, since the duplicate rule depends on them. |
-| Volumes 24–32 | `24 book.doc` … `32 book.doc` | further volumes of the encyclopedia |
+| Fatwa encyclopedia (`موسوعة فتاوى المغتربين`), three editions | 32 volumes `01 book.doc` … `32 book.doc` (saved 2011–2017); 25 chapter files of 2020–21 (`NN <chapter>.doc`, chapter 01 as `01-1`…`01-3`); 23 chapter files of 2022–23 (`NN (2) <chapter>.docx`, chapter 04 as `(3)`) | Each volume spans every chapter (creed, politics, knowledge, purification, prayer, … miscellaneous), with fatawa numbered continuously across volumes («794. حكم الوشم»). The later editions are arranged by chapter, one file each. The dates come from the files' own properties; the 2022–23 files were last saved under the Sheikh's account. Nine 2022–23 files are marked `تحت الإجراء` (in progress): chapters 04, 05, 07, 08, 10, 14, 15, 17, 21. Chapter numbers 16–18 differ between the 2020–21 and 2022–23 files. |
 | Volumes 33, 35, 36 | three files | empty templates (headings only) |
 | Standalone books and treatises | about 30 | e.g. `الصارم`, `نهائي الطحاوية`, `ما لا يسع المسلم جهله`, `مالا يسع التاجر جهله`, `نوازل فقهية على الساحة الأمريكية`, `التعددية السياسية` |
 
@@ -77,7 +79,7 @@ The editions overlap heavily: of 129,957 paragraphs of 20 or more words, 90,273 
 |---|---|
 | `clean_txt` (Drive, December 2025): 115 `.txt` files, one per source | checked in step 1a and rejected |
 | Tanzil Quran text, Uthmani, version 1.1 (downloaded 2026-10-24 from tanzil.net) | to identify Quran quotes typed in glyph fonts and write them as text. Its terms allow verbatim copies only, and the app must credit the Tanzil Project with a link to tanzil.net; accepted by Hashem. |
-| Video fatawa (Drive `sawi_material/YouTube Fatwas/`) | a `metadata` sheet of 1,308 YouTube clips from his live fatwa programmes, 2020–2024, each titled with one question and mostly under 4 minutes, with a Whisper machine transcript per clip (`open_ai_whisper_1/`, February 2025). Not yet downloaded or checked. |
+| Video fatawa (Drive `sawi_material/YouTube Fatwas/`) | a `metadata` sheet of 1,308 YouTube clips from his live fatwa programmes, 2020–2024, each titled with one question and mostly under 4 minutes, with a Whisper machine transcript per clip (`open_ai_whisper_1/`, February 2025). Left out for now: machine transcripts are not verbatim and are not trusted (decision, section 6). |
 | fatawaalsawy.com | the public fatwa archive; the team has asked the site manager for an export |
 | `sawi.mp3`, about 2 hours of khutbahs | the voice clone's training audio |
 | Golden Dataset and earlier model tests (Google Sheets, linked in CLAUDE.md) | for step 6 |
@@ -215,31 +217,60 @@ In the full run with the other 115 books, the acceptance check passes for this b
 | 2026-10-24 | `clean_txt` is not used; the text is extracted again from the Word files | section 3 |
 | 2026-10-24 | Quran quotes are written with Tanzil's Uthmani text of exactly the quoted words; where the source misquotes, the correct text is used and the quote flagged | a misquote must never be read out as Quran |
 | 2026-10-24 | Fatawa containing any of the 19 flagged quotes are left out of the records; the 109 repaired quotes stay | section 4.7 |
-| 2026-10-24 | Scope: fatawa, treatises and lectures (video fatawa) all go in; clean data first | Hashem: the base should be complete, and correct before anything is built on it |
-| 2026-10-24 | Duplicates: keep the newest edition of each fatwa; where that is a 2022–23 file marked `تحت الإجراء`, keep the 2020–21 copy | in-progress files are not final |
+| 2026-10-24 | Scope: his fatawa and treatises go in; clean data first | Hashem: the base should be complete, and correct before anything is built on it |
+| 2026-10-24 | The video fatawa are left out for now | their Whisper transcripts are machine-made and not trusted |
+| 2026-10-24 | Duplicates: keep the newest edition of each fatwa; where that is a 2022–23 file marked `تحت الإجراء`, keep the 2020–21 copy. Fatawa found only in a `تحت الإجراء` file are kept | in-progress files are not final, but the Sheikh's team gave us these files |
 | 2026-10-24 | Specific personal cases go to a person, unless a fatwa matches every fact (almost never). The bot may offer related fatawa from his books, verbatim and cited, but never a ruling that is not in his books | a fatwa answers its asker's facts; a case that differs may need a different ruling |
+| 2026-10-24 | In those cases the bot may add AI-written commentary on the related fatawa: text on screen only, labelled as AI-written, never spoken in his voice, never itself a ruling | the one exception to "the model only chooses"; like machine translation, it is kept visibly apart from his words. Generated text can be steered by a manipulated question, so the label and the separation are what protect it |
 | 2026-10-24 | Front end: the ElevenLabs agent for now (custom LLM pointing at this backend), our own app later | the agent exists; our own app later allows reviewed, cached audio |
 | 2026-10-24 | `التعددية السياسية.doc` is used through the repaired copy | section 5 |
 
 ## 7. Open questions
 
-- **In-progress-only fatawa.** Fatawa that exist only in a `تحت الإجراء` file, with no 2020–21 copy: keep them, or leave them out until the file is finished?
-- **"Talk about" related fatawa in specific cases.** The core rule allows no words of the bot's own in his voice. Does the bot offer a fixed, pre-approved referral message plus the verbatim fatawa, or also AI-written text shown on screen, labelled as such and never spoken?
-- **Video fatawa.** Answer by playing the original clip (his real voice, no TTS), or speak a transcript in the cloned voice? Whisper transcripts contain recognition errors, so anything spoken or shown from them needs a human check first; for search they can be used as they are.
-- **Quran pronunciation through the agent.** With the ElevenLabs agent, every answer is synthesized live, so the plan to review each passage's audio before release (step 5) only fully applies in our own app.
+No decision is pending. One point to plan for: with the ElevenLabs agent, every answer is synthesized live, so the plan to review each passage's audio before release, Quran pronunciation included (step 5), only fully applies in our own app.
 
-## 8. Next: step 2, records
+## 8. Step 2a: one record per fatwa (the encyclopedia)
 
-From `data/work/extract/json/`:
+Full write-up: [segmentation.md](segmentation.md).
 
-1. **Boundaries.** A fatwa runs: title → the asker's question → `الجواب` → `بسم الله الرحمن الرحيم` → `الحمد لله والصلاة والسلام على رسول الله…` → answer → `والله تعالى أعلى وأعلم`. Titles carry heading styles in the 2020–23 chapter files; what the 2011 volumes and the standalone books use is checked before relying on styles. Front matter, introductions and tables of contents are not fatawa. Treatises and other books become one record per section (the passage under a heading).
-2. **Record:** `{id, title, question, answer, notes, collection, chapter, source_file}`, text exactly as extracted, with the footnotes it references and its Quran and honorific spans.
-3. **Exclusions:** fatawa containing a flagged quote, listed in the segmentation report.
-4. **Dedupe:** match copies across editions by content (not by chapter number), keep the newest edition per the decision above, record where the others are.
-5. **Check:** every block ends up in exactly one record or in a listed non-fatwa part; nothing is dropped silently.
-6. **Search copy:** a separate normalized text (no tashkeel, tatweel or brackets; ا/أ/إ/آ, ى/ي, ة/ه unified) for retrieval only.
+**Question.** Where does each fatwa begin and end, which parts of the books are not fatawa, and which copy of a fatwa that appears in several editions should the assistant use?
 
-Then the video fatawa: download the metadata and transcripts, and decide how they are answered (section 7).
+**Material.** The 80 files of the encyclopedia: the 32 volumes of 2011–2017, the 25 chapter files of 2020–21 and the 23 of 2022–23, about 265,000 paragraphs. The standalone books and treatises are step 2b.
+
+### 8.1 Boundaries
+
+A fatwa runs: title, the asker's question, «الجواب» on a line of its own, the basmala and «الحمد لله والصلاة والسلام على رسول الله…», the answer, and «والله تعالى أعلى وأعلم». The «الجواب» lines (21,718) are reliable anchors. The work is to find where one answer ends and the next title begins. A first version that split after the last closing formula was checked by reading samples of every kind of record. The review found the following problems, each fixed by a rule backed by a measurement:
+
+- **Titles have a form per file.** Each file sets its titles consistently, but the files differ (numbered `heading 2`, `heading 3`, `عنوان2`, an outline level). The script learns each file's form from the paragraphs that follow the Sheikh's closing formula, and the last title of that form before an anchor starts the next fatwa. List numbers count only as the next number in sequence, because lists inside answers restart at 1.
+- **Askers write closing formulas too.** «والله أعلم», and sometimes his full formula, end some questions. That had cut questions in half. Only his formula and its known variants and typos count, and a formula after a title is the asker's (7 cases). Title-styled paragraphs inside answers occur in 14 of 21,711 records, so letting the title form win is safe.
+- **Plain-paragraph titles** (a third of the titles in some 2020–21 files) are found by the closing formula. Where that is missing too, they are found by their measured shape: 97% end without punctuation and 99.97% have at most 20 words (9 cases).
+- **Editors' notes** («هذه الفتوى مكررة مع سابقتها», «إلى هنا»), some set in a heading style, are left out of the text and listed with their record (33). They are not the Sheikh's words.
+- **Two-paragraph titles, numbers on their own line, ornaments and chapter headings** («***», «كتاب الصلاة») are handled so that no title is lost or invented. The chapter of each fatwa in the volumes comes from those headings.
+- **Quoted fatawa.** The Sheikh's own answers open with his formula: 21,684 of 21,711, plus 22 one-line answers in a list of short questions. The 5 that do not are other scholars' fatawa that had become records of their own (Hani al-Jubair, Rashid Rida) or two of his one-line answers. They are held, so that no other scholar's words are read in his voice.
+
+**Check.** Every non-empty paragraph of the 80 files is in exactly one record or one listed part (234,091 in 21,720 records, 30,884 in 816 parts: front and back matter, chapter headings, ornaments, tables of contents). The script refuses to finish otherwise.
+
+### 8.2 Copies across editions
+
+The editions overlap heavily: 7,895 of the volumes' 10,123 fatawa have a copy in the 2020–21 files, and 942 of the 2,283 fatawa in the 2022–23 files (41%) repeat a 2020–21 one. Measured on known pairs, copies share 90–100% of their question's words and 50–100% of their answer (answers are revised and often extended: 580 characters became 3,435). Different fatawa can share answer text, because the Sheikh reuses paragraphs and council resolutions, but their questions share under 15%. So two records are one fatwa when their questions match and their answers are related, or when the question is identical. Links are made strongest first, never join two records of the same file into one group, and never join the parts of a series («(1)», «(2)»).
+
+The kept copy follows the decisions: the newest edition; a 2020–21 copy instead of an in-progress 2022–23 one (393 times); in-progress copies kept where no 2020–21 copy exists (510); a held copy passed over for a usable one.
+
+### 8.3 Result
+
+| | |
+|---|---|
+| Records in all editions | 21,711 fatawa, 9 articles |
+| Held for review, not used | 26: 12 with a flagged Quran quote, 9 articles (titled texts without «الجواب», some of mixed authorship), 5 not opening with his formula |
+| Distinct fatawa | 12,789 |
+| **Corpus (kept copies)** | **12,779**: 1,869 from 2022–23, 8,732 from 2020–21, 2,178 found only in the volumes |
+| For a person to check | 54 fatawa whose answer was reworded between editions (newest kept; perhaps a changed view); 79 answers given to two different questions (kept as separate fatawa) |
+
+Each corpus record carries its title, question, answer, footnotes, chapter, source, its other copies, the Quran and honorific spans, and a normalized copy of its text for search only. That normalized copy is the last item of the original step 2 plan.
+
+## 9. Next: step 2b, the standalone books
+
+About 33 books are not part of the encyclopedia. Some are fatawa collections in other formats (`نوازل فقهية على الساحة الأمريكية`, `مالا يسع التاجر جهله`, `المخرج من الفتنة` with a `السؤال` style). Others are treatises (`الصارم`, `التعددية السياسية`, `نظرية السيادة`). Treatises become one record per section, the passage under a heading. Many of them set their headings by direct formatting rather than styles, so the books' tables of contents are the likely way to find the headings. The video fatawa stay out for now (section 6).
 
 ## Appendix A: reproducing the data
 
@@ -251,9 +282,11 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\word_export.ps1 -Inp
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\word_export.ps1 -InputDir data\work\repaired -OutDir data\work\word -Force
 python -I -X utf8 scripts\extract_text.py --word data\work\word --quran data\raw\quran\quran-uthmani.txt --out data\work\extract
 python -I -X utf8 scripts\check_extract.py --word data\work\word --extract data\work\extract
+python -I -X utf8 scripts\segment.py --extract data\work\extract --out data\work\records
+python -I -X utf8 scripts\dedupe.py --records data\work\records
 ```
 
-The first export records the damaged file as an error; the second replaces that entry with the repaired copy. The `clean_txt` check (section 3) is reproduced with `verify_txt.py` and `overlap.py` as shown in [data-verification.md](data-verification.md).
+The first export records the damaged file as an error; the second replaces that entry with the repaired copy. The corpus is `data/work/records/corpus.jsonl`. The `clean_txt` check (section 3) is reproduced with `verify_txt.py` and `overlap.py` as shown in [data-verification.md](data-verification.md).
 
 ## Appendix B: repository map
 
@@ -263,6 +296,7 @@ The first export records the damaged file as an error; the second replaces that 
 | `docs/report.md` | this report |
 | `docs/data-verification.md` | step 1a in full |
 | `docs/extraction.md` | step 1b–1c in full |
+| `docs/segmentation.md` | step 2a in full |
 | `scripts/word_export.ps1` | reads every source through Word: plain text, footnotes, text boxes, XML |
 | `scripts/verify_txt.py` | checks a text conversion (here `clean_txt`) against Word's reading |
 | `scripts/overlap.py` | paragraph overlap between sources |
@@ -272,6 +306,8 @@ The first export records the damaged file as an error; the second replaces that 
 | `scripts/check_extract.py` | acceptance test of the extraction against Word's own text |
 | `scripts/repair_doc.py` | repaired copy of `التعددية السياسية.doc` |
 | `scripts/find_glyph_fonts.py` | where given glyph words occur in the books, and in which fonts |
+| `scripts/segment.py` | the encyclopedia → one record per fatwa, non-fatwa parts, review flags, coverage check |
+| `scripts/dedupe.py` | copies of each fatwa across editions → the corpus, one kept copy each, with a search copy of its text |
 
 ## Appendix C: glossary
 

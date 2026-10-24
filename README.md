@@ -18,7 +18,8 @@ question
 - [x] Prototype ElevenLabs agent (built-in RAG)
 - [x] Source documents collected (116 Word files) and the first-pass text (`clean_txt`) checked against them: not usable as is, see [docs/data-verification.md](docs/data-verification.md)
 - [x] Text re-extracted from Word with footnotes, tables, honorifics and the exact Quran quotes, and checked word for word against Word's own text, all 116 files (one repaired first): [docs/extraction.md](docs/extraction.md)
-- [ ] Split the text into one record per fatwa, treatise section and video fatwa (next; plan in [CLAUDE.md](CLAUDE.md))
+- [x] Split the fatwa encyclopedia into one record per fatwa and deduplicate its three editions: 12,779 distinct fatawa ([docs/segmentation.md](docs/segmentation.md))
+- [ ] Split the standalone books and treatises (one record per fatwa or section)
 - [ ] Search index and strict answer selection
 - [ ] Voice output with audio caching
 - [ ] Evaluation: golden set, abstention, and injection tests
