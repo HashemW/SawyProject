@@ -3,9 +3,8 @@
 .env.*
 !.env.example
 
-# Source texts and generated data (the books stay in Drive, not in git)
-data/raw/
-data/cache/
+# Source documents, extracted text and generated data (the books stay in Drive, not in git)
+data/
 
 # Python
 __pycache__/

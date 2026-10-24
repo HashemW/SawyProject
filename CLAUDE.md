@@ -25,16 +25,21 @@ The older system prompt in Drive (`Prompt Engineering/Prompt`) allowed exception
 
 | What | Where | Notes |
 |---|---|---|
-| Original books (`.doc`) | Drive `sawi_material`: https://drive.google.com/drive/folders/18PA1HGQ28p13M7sZQDInA_0wMhGo6T8B | Old Word files. As of 2026-10-24 only one `.doc` is left in it (`03 (2) كتاب العلم.doc`), plus the `Progress/` and `Prompt Engineering/` docs. |
-| Converted text | Drive `clean_txt` (Hashem, Dec 2025): https://drive.google.com/drive/folders/1ZqNNZKHYjJP1768VDBWNyEJCUGrl68SP | *موسوعة فتاوى الصاوي* split by fiqh chapter (`01 كتاب العقيدة` … `22 كتاب الحديث الشريف`, including the 3-volume *موسوعة فتاوى المغتربين – كتاب العقيدة*), plus standalone books (تهافت العلمانية, نظرية السيادة, نهائي الطحاوية, …). Variants tagged `(2)`, `تحت الإجراء` (in progress), or `NN book.txt` may overlap; dedupe before indexing. |
+| Original books (`.doc`/`.docx`) — **the source of truth** | Drive `sawi_material`: https://drive.google.com/drive/folders/18PA1HGQ28p13M7sZQDInA_0wMhGo6T8B | 116 Word files (2003–2023), plus folders `Progress/`, `Prompt Engineering/`, `YouTube Fatwas/`. Per fiqh chapter `01`–`23` there are usually three files: `NN book.doc` (2011), `NN <chapter>.doc` (2020–21) and `NN (2) <chapter>.docx` (2022–23 additions, some marked `تحت الإجراء`), plus `24`–`32 book.doc`, volumes 33/35/36 (headings only) and ~30 standalone books. Expect heavy overlap between variants; dedupe before indexing. `التعددية السياسية.doc` will not open in Office (file validation error). |
+| Converted text (Dec 2025) — **do not use** | Drive `clean_txt` (Hashem): https://drive.google.com/drive/folders/1ZqNNZKHYjJP1768VDBWNyEJCUGrl68SP | 115 `.txt` files, one per source. Verified 2026-10-24 against Word (`docs/data-verification.md`): all 29,639 footnotes dropped, most tables dropped, runs tagged with a symbol font dropped (whole sections lost in some books), Quran quotes replaced by the full verse, duplicated or deleted, two files failed. The plain prose is otherwise exact. |
 | Fatwa website | https://fatawaalsawy.com | Large archive. The team asked the site manager for the data; prefer an export over scraping. |
 | Voice training audio | `sawi.mp3`, ~2 h of khutbahs: https://drive.google.com/file/d/1DcygMVxmADH2B7EGxDp54cTsoOG6Hql8 | Already used for the clone. |
 
-Text format, checked in `clean_txt/16 (2) كتاب الرضاع.txt`: clean Unicode Arabic. Each fatwa runs: title line → the asker's question → `الجواب` → `بسم الله الرحمن الرحيم` → `الحمد لله والصلاة والسلام على رسول الله…` → answer → `والله تعالى أعلى وأعلم.` Footnote markers survive as empty `()` and the footnote text is lost (re-convert from `.doc` if it is needed). Quran is quoted in Uthmani script as `﴿…﴾ [سورة: آية]`. Files open with a book header and end with `***` / `الفهرس`.
+What's inside the Word sources:
+- Fatawa (e.g. `03 (2) كتاب العلم.doc`) run: title line → the asker's question → `الجواب` → `بسم الله الرحمن الرحيم` → `الحمد لله والصلاة والسلام على رسول الله…` → answer → `والله تعالى أعلى وأعلم.` Footnotes (hadith sources etc.) are real Word footnotes; their reference marks sit inside literal parentheses `(…)`. Books open with a header and end with a table of contents (`الفهرس`).
+- **Quran is not Unicode text.** Verses are glyphs in Quran fonts: `<w:sym>` characters in HQPB1–5, or private-use characters (U+F0xx) in Othmani1–5, with AGA Arabesque ornamental brackets. Word's plain text shows them as `(` or nothing. Decoding needs the glyph → text mapping; the cited `[سورة: آية]` follows each passage, but the Sheikh often quotes only part of a verse.
+- Some runs carry a symbol font (AGA Arabesque) in the Latin-font slot while containing ordinary Arabic; any filter on font names will drop real text.
+
+Reading the sources: `scripts/word_export.ps1` drives Word (read-only, macros off, never saves; Word's SaveAs hangs on these files) and writes main text, footnotes and the flat XML. `scripts/verify_txt.py` rebuilds the visible text from that XML and checks any conversion against it.
 
 ## Planned pipeline
 
-1. **Ingest** text from `clean_txt`. If a `.doc` needs re-converting, use Word COM automation (Word is installed on Hashem's PC; LibreOffice is not).
+1. **Ingest** from the Word sources via `scripts/word_export.ps1` (Word is installed on Hashem's PC; LibreOffice is not), not from `clean_txt`. Keep all text, tables, list numbers and footnotes; decode Quran glyphs to exactly the words quoted. `scripts/verify_txt.py` is the acceptance test: 100% of the source's words, nothing extra.
 2. **Segment** into one record per fatwa: `{id, title, question, answer, collection, chapter, source_file}`. Keep the original text exactly as written for display and voice. Build a separate normalized copy for search only: strip tashkeel, tatweel and `()`, and unify ا/أ/إ/آ, ى/ي, ة/ه.
 3. **Index** with hybrid retrieval: Arabic-aware BM25 plus multilingual embeddings, over title+question and over the answer. User questions usually resemble the original askers' questions.
 4. **Select**: take the top-k, rerank, then run a strict LLM check of whether a candidate answers the question. A match returns the verbatim fatwa with its citation; no match returns the abstain message.
@@ -43,10 +48,13 @@ Text format, checked in `clean_txt/16 (2) كتاب الرضاع.txt`: clean Unic
 
 Front end: either keep the ElevenLabs agent for voice in/out and point it at this backend as a custom LLM, or build our own app that calls TTS directly.
 
+## Decisions
+
+- **Verbatim only** (confirmed 2026-10-24): answers are the Sheikh's text word for word, never summarized.
+- **Languages** (2026-10-24): people may ask in any language; the answer is always the Sheikh's Arabic text. Translation is either the user's own tool or an optional machine translation the bot shows as text, labelled as such. A translation is never spoken in his voice.
+
 ## Open decisions (ask; don't assume)
 
-- Verbatim only, or is any summarizing acceptable? Until the Sheikh says otherwise: verbatim.
-- Languages: Arabic only, or English questions too? An English rendition voiced as him is no longer his words.
 - Scope: fatawa only, or also his treatises and lectures?
 - Topics that should always be referred to a person (e.g., specific divorce cases, inheritance shares)?
 - Front end: ElevenLabs agent with a custom LLM, or our own app?
@@ -60,5 +68,6 @@ Front end: either keep the ElevenLabs agent for voice in/out and point it at thi
 
 ## Conventions
 
-- The books stay in Drive, not in git (`data/raw/` is gitignored).
+- The books stay in Drive, not in git: everything under `data/` is gitignored (`data/raw/` downloads, `data/work/` derived files).
+- Downloading from Drive: the Google Drive connector lists only files Hashem has opened (1 of the 116 sources), so use Chrome. Drive's select-all only covers rows that have loaded (scroll to the end first), and Chrome blocks repeat zip downloads in one tab; use a fresh tab per zip.
 - UTF-8 everywhere. On Windows, run Python with `PYTHONUTF8=1` (or `-X utf8`); otherwise piped output and file I/O default to cp1252 and fail on Arabic.
