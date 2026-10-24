@@ -80,7 +80,7 @@ All 1,708,156 glyph-font characters are accounted for; 0 of 115 files differ. Th
 
 `data/work/extract/report.md` lists each of these with the source's own letters and the text that was written.
 
-Needs a decision (19):
+Left out (19). Decision (Hashem, 2026-10-24): the fatawa that contain these quotes are not included in the records at all.
 
 - **1 not identified:** «إلا الله» in `نهائي الطحاوية`, with no reference; shown as ⟦?⟧.
 - **6 one- or two-word quotes** without a reference whose vowels the glyphs do not settle; the first candidate is shown. Example: ﴿شَهِدْنَا﴾, which the context points to 7:172 «شَهِدْنَآ».

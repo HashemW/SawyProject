@@ -2,7 +2,7 @@
 
 A voice chatbot that answers people's questions **only** with the fatawa of Dr. Salah Al-Sawy (أ.د. صلاح الصاوي), spoken in his own voice cloned in ElevenLabs. The Sheikh asked for this project.
 
-**Status:** the voice is cloned ("sawy v2"). An ElevenLabs agent prototype answers using ElevenLabs' built-in knowledge-base RAG, with an LLM writing the answers (Gemini Flash in the Nov 2025 notes). Those answers are generated rather than quoted, and testing was weak. This repo builds our own retrieval pipeline (the "professional RAG" route in the team notes) and keeps ElevenLabs for the voice.
+**Status:** the voice is cloned ("sawy v2"). An ElevenLabs agent prototype answers using ElevenLabs' built-in knowledge-base RAG, with an LLM writing the answers (Gemini Flash in the Nov 2025 notes). Those answers are generated rather than quoted, and testing was weak. This repo builds our own retrieval pipeline (the "professional RAG" route in the team notes) and keeps ElevenLabs for the voice. The books' text has been extracted and checked (step 1 below); the next step is one record per fatwa.
 
 ## Core rule: only the Sheikh's words
 
@@ -41,8 +41,14 @@ Reading the sources: `scripts/word_export.ps1` drives Word (read-only, macros of
 
 ## Planned pipeline
 
-1. **Ingest** (done, `docs/extraction.md`): `scripts/word_export.ps1` (Word is installed on Hashem's PC; LibreOffice is not), then `scripts/extract_text.py`, not `clean_txt`. Keeps all text, tables, list numbers and footnotes; Quran glyph quotes become Tanzil's text of exactly the words quoted, honorific glyphs become their words. `scripts/check_extract.py` is the acceptance test: every word of Word's own text, in order, nothing extra. Quotes it could not take verbatim are listed in `data/work/extract/report.md` for a human to check.
-2. **Segment** into one record per fatwa: `{id, title, question, answer, collection, chapter, source_file}`. Keep the original text exactly as written for display and voice. Build a separate normalized copy for search only: strip tashkeel, tatweel and `()`, and unify ا/أ/إ/آ, ى/ي, ة/ه.
+1. **Ingest** (done, `docs/extraction.md`): `scripts/word_export.ps1` (Word is installed on Hashem's PC; LibreOffice is not), then `scripts/extract_text.py`, not `clean_txt`. Keeps all text, tables, list numbers and footnotes; Quran glyph quotes become Tanzil's text of exactly the words quoted, honorific glyphs become their words. `scripts/check_extract.py` is the acceptance test: every word of Word's own text, in order, nothing extra. Quotes it could not take verbatim are listed in `data/work/extract/report.md`.
+2. **Segment** (next; not started) into one record per fatwa, from `data/work/extract/json/`:
+   - Boundaries: a fatwa runs title → asker's question → `الجواب` → answer → `والله تعالى أعلى وأعلم`. In the 2020–23 chapter files titles carry Word heading styles (`heading 3`); check what the 2011 `book` volumes, the 2020–21 chapter files and the standalone books use before relying on styles. Front matter, introductions and tables of contents are not fatawa.
+   - Record: `{id, title, question, answer, notes, collection, chapter, source_file}`, text exactly as extracted. Footnotes go with the fatwa that references them; keep the `quran` and `honorific` spans (TTS needs the Quran spans).
+   - Leave out every fatwa that contains one of the 19 flagged quotes (span `status` `unresolved`, `ambiguous` or `corrected`); list them in the segmentation report.
+   - Dedupe: most fatawa exist in several editions (`NN book.doc` 2011, `NN <chapter>.doc` 2020–21, `NN (2) <chapter>.docx` 2022–23, volumes 24–32). Keep one copy per fatwa (which one is an open decision) and record where the others are.
+   - Check: every block ends up in exactly one record or in a listed non-fatwa part; nothing is dropped silently.
+   - Then a separate normalized copy for search only: strip tashkeel, tatweel and `()`, and unify ا/أ/إ/آ, ى/ي, ة/ه.
 3. **Index** with hybrid retrieval: Arabic-aware BM25 plus multilingual embeddings, over title+question and over the answer. User questions usually resemble the original askers' questions.
 4. **Select**: take the top-k, rerank, then run a strict LLM check of whether a candidate answers the question. A match returns the verbatim fatwa with its citation; no match returns the abstain message.
 5. **Voice**: ElevenLabs TTS ("sawy v2") on the verbatim text, cached by text hash so each passage is paid for once and can be reviewed before release. Quran quotations need special handling: mispronouncing Quran in his voice is unacceptable.
@@ -55,10 +61,12 @@ Front end: either keep the ElevenLabs agent for voice in/out and point it at thi
 - **Verbatim only** (confirmed 2026-10-24): answers are the Sheikh's text word for word, never summarized.
 - **Languages** (2026-10-24): people may ask in any language; the answer is always the Sheikh's Arabic text. Translation is either the user's own tool or an optional machine translation the bot shows as text, labelled as such. A translation is never spoken in his voice.
 - **Quran text** (2026-10-24): quotes are written with Tanzil's Uthmani text of exactly the quoted words (Hashem accepted Tanzil's terms). Where the document's own quote is garbled or misses a word, the cited verses' correct text is used and the quote is flagged for review; it is never printed as a misquote.
+- **Flagged quotes** (2026-10-24): the fatawa containing any of the 19 quotes that need a decision (1 unreadable, 6 with undecided vowels, 12 wrong in the source) are left out of the records entirely. The 109 repaired quotes (stray characters standing in for glyphs, words matched letter for letter) stay.
 
 ## Open decisions (ask; don't assume)
 
 - Scope: fatawa only, or also his treatises and lectures?
+- Duplicates: when a fatwa appears in several editions, which copy is kept (the newest edition is the natural default)?
 - Topics that should always be referred to a person (e.g., specific divorce cases, inheritance shares)?
 - Front end: ElevenLabs agent with a custom LLM, or our own app?
 
