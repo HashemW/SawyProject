@@ -84,6 +84,16 @@ Front end (decided): the ElevenLabs agent for now, for voice in and out, pointed
 
 - For the Sheikh's team: which parts of the two co-authored books are his (they are left out until then)?
 - For a reviewer: the 165 held records of the extremism dialogue (`نهائي تطرف`), the 26 held encyclopedia records.
+- For Hashem: which LLM does step 4's final check use, and whose API key and billing? Where an in-progress 2022–23 copy gave way to the 2020–21 one, 13 copies differ noticeably (`docs/segmentation.md`, Limits): use the newer copy in those?
+
+## Next steps (as of 2026-10-25)
+
+Steps 1–3 are done and pushed; nothing of step 4 exists yet.
+
+1. **Ask Hashem first** which LLM step 4 uses and whose key and billing (the team's earlier tests used Gemini 2.0 Flash and GPT-5; links below). The key goes in `.env`, never in code or commits.
+2. **Step 4, choosing the answer** (`docs/report.md` section 11). Take the first 30–50 hits of `search.Index.search`; 95–97% of the time the right record is among them. Rerank them with a local multilingual cross-encoder (candidate: `BAAI/bge-reranker-v2-m3`). Then run the strict LLM check, whose only output is a record ID or "none" (core rule 4). The answer is that record's verbatim text with its citation, or the fixed "no fatwa found" message. For a long book section, quote the passage that matched (each hit carries it). Questions about the asker's own case go to a person (Decisions). Measure it on `eval/retrieval.jsonl`, plus questions that must get the abstain message, before building anything around it.
+3. Possible improvement to search: book sections are found less reliably than fatawa, because their only "question" is a heading.
+4. Then step 5 (voice; through the agent, a plan for Quran pronunciation) and step 6 (evaluation).
 
 ## Links
 

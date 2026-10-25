@@ -240,6 +240,10 @@ For a person to review (lists in `data/work/records/`):
 - 165 exchanges of the extremism dialogue (`نهائي تطرف`), split by formatting;
 - 26 encyclopedia records held (doubtful Quran quotes, articles, quoted fatawa).
 
+For Hashem (2026-10-25):
+- Which LLM does step 4's final check use, and whose API key and billing?
+- Where an in-progress 2022–23 copy gave way to the 2020–21 one, 13 copies differ noticeably ([segmentation.md](segmentation.md#limits)): should the newer copy be used in those?
+
 Answered on 2026-10-24 (section 6): the five files without an author line, the passages `حكم الدين` shares with `الصارم`, and the 54 reworded answers.
 
 One point to plan for: with the ElevenLabs agent, every answer is synthesized live, so the plan to review each passage's audio before release, Quran pronunciation included (step 5), only fully applies in our own app.
