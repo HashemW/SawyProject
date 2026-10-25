@@ -2,7 +2,7 @@
 
 A voice chatbot that answers people's questions **only** with the fatawa of Dr. Salah Al-Sawy (أ.د. صلاح الصاوي), spoken in his own voice cloned in ElevenLabs. The Sheikh asked for this project.
 
-**Status:** the voice is cloned ("sawy v2"). An ElevenLabs agent prototype answers using ElevenLabs' built-in knowledge-base RAG, with an LLM writing the answers (Gemini Flash in the Nov 2025 notes). Those answers are generated rather than quoted, and testing was weak. This repo builds our own retrieval pipeline (the "professional RAG" route in the team notes) and keeps ElevenLabs for the voice. The text of all 116 books has been extracted and checked (step 1 below; one damaged file was repaired first); the next step, in progress, is one record per fatwa and per treatise section. Every step is written up in `docs/report.md`.
+**Status:** the voice is cloned ("sawy v2"). An ElevenLabs agent prototype answers using ElevenLabs' built-in knowledge-base RAG, with an LLM writing the answers (Gemini Flash in the Nov 2025 notes). Those answers are generated rather than quoted, and testing was weak. This repo builds our own retrieval pipeline (the "professional RAG" route in the team notes) and keeps ElevenLabs for the voice. The text of all 116 books has been extracted and checked (step 1 below; one damaged file was repaired first) and split into records (step 2): a corpus of 13,461 records of the Sheikh's own text. The index (step 3) is next. Every step is written up in `docs/report.md`.
 
 ## Core rule: only the Sheikh's words
 
@@ -45,7 +45,7 @@ Reading the sources: `scripts/word_export.ps1` drives Word (read-only, macros of
 ## Planned pipeline
 
 1. **Ingest** (done, `docs/extraction.md`): `scripts/repair_doc.py` for the one damaged file, `scripts/word_export.ps1` (Word is installed on Hashem's PC; LibreOffice is not), then `scripts/extract_text.py`, not `clean_txt`. Keeps all text, tables, list numbers and footnotes; Quran glyph quotes become Tanzil's text of exactly the words quoted, honorific glyphs become their words. `scripts/check_extract.py` is the acceptance test: every word of Word's own text, in order, nothing extra. Quotes it could not take verbatim are listed in `data/work/extract/report.md`.
-2. **Segment** into one record per fatwa, from `data/work/extract/json/`. **Encyclopedia done** (`docs/segmentation.md`): `scripts/segment.py` → `scripts/dedupe.py` → `data/work/records/corpus.jsonl`, 12,779 distinct fatawa; 26 records held for review, 54 reworded answers and 79 shared answers listed in `dedupe.md`. **Next: the standalone books.** Treatises and books that are not fatawa become one record per section (the passage under a heading), with the same fields minus the question. The notes below are the original plan; `docs/segmentation.md` has what was actually done.
+2. **Segment** (done, `docs/segmentation.md`): `scripts/segment.py` (encyclopedia) and `scripts/segment_books.py` (standalone books, per the authorship table in it) → `scripts/dedupe.py` → `data/work/records/corpus.jsonl`: **13,461 records**, 12,779 distinct fatawa and 682 book records (sections, and question-answer records from his books of questions and the interview). Held for review, never used until checked: 26 encyclopedia records, 165 dialogue records of `نهائي تطرف`. Review lists: `report.md`, `books.md`, `dedupe.md` in that folder. The notes below are the original plan; `docs/segmentation.md` has what was actually done.
    - Boundaries: a fatwa runs title → asker's question → `الجواب` → answer → `والله تعالى أعلى وأعلم`. In the 2020–23 chapter files titles carry Word heading styles (`heading 3`); check what the 2011 `book` volumes, the 2020–21 chapter files and the standalone books use before relying on styles. Front matter, introductions and tables of contents are not fatawa.
    - Record: `{id, title, question, answer, notes, collection, chapter, source_file}`, text exactly as extracted. Footnotes go with the fatwa that references them; keep the `quran` and `honorific` spans (TTS needs the Quran spans).
    - Leave out every fatwa that contains one of the 19 flagged quotes (span `status` `unresolved`, `ambiguous` or `corrected`); list them in the segmentation report.
@@ -69,11 +69,18 @@ Front end (decided): the ElevenLabs agent for now, for voice in and out, pointed
 - **Duplicates** (2026-10-24): keep the newest edition of each fatwa. Where the newest copy is in a 2022–23 file marked `تحت الإجراء` (in progress; 9 files: chapters 04, 05, 07, 08, 10, 14, 15, 17, 21), keep the 2020–21 copy instead. Fatawa that exist only in a `تحت الإجراء` file are kept: the Sheikh's team gave us these files.
 - **Specific cases** (2026-10-24): questions about a person's own case (a particular divorce, inheritance shares, …) go to a person, unless a fatwa matches every fact of the case, which is almost never. The bot may still offer related fatawa from his books, verbatim and cited, but never a ruling that is not in his books. It may add AI-written commentary on them as labelled on-screen text, never in his voice (the exception under the core rule).
 - **Front end** (2026-10-24): the ElevenLabs agent for now; our own app later.
+- **Standalone books, authorship** (2026-10-24): only text that is the Sheikh's own goes in.
+  - His single-author books go in as sections; forewords by others (عبد الغفار عزيز in `تهافت العلمانية`, علي السالوس in `وقفات هادئة`) are left out. `دعاة لا قضاة` and `قراءة في كتاب دعاة لا قضاة` are the same file (his reading of that book); one copy is used.
+  - Co-authored with Dr. Abdullah al-Muslih: left out (`ما لا يسع المسلم جهله`, `مالا يسع التاجر جهله`, and the excerpts of the latter: `البيوع وأحكامها`, `المضاربة وأحكامها`, `المعاملات الربوية والبدائل الشرعية`).
+  - `الصارم` (his abridgment of Ibn Taymiyya's «الصارم المسلول») and `المواجهة بين الإسلام والعالمانية` (a debate with other speakers; preface by Dr. Muhammad Imara): only his own parts, where they can be told apart; the rest is listed as left out. The same rule covers what was found later: the 1992 debate transcript in `تهافت العلمانية`, the appendices of `وقفات هادئة` (others' fatawa and council resolutions) and the Hidaya association's fatwa in `فاعلم أنه لا إله إلا الله`.
+  - Interviews `تكلم الدعاة` and `نهائي تطرف`: question-answer records (the interviewer's question, his answer); the framing text about him is left out.
+  - No author line, held until the Sheikh's team confirms: `أصول الإيمان`, `نهائي الطحاوية`, `وجيزالزكاة`, `من التطبيقات المعاصرة للزكاة`, `قضايا معاصرة`.
 - **Damaged source** (2026-10-24): `التعددية السياسية.doc` is used through the repaired copy from `scripts/repair_doc.py`, which rebuilds 41 characters' lost formatting (fonts of a 58:22 glyph quote) from an intact copy of the same verse earlier in the same paragraph, confirmed by the same words in 11 other books. The text itself is untouched (Word's text of the copy equals the text stored in the original).
 
 ## Open decisions (ask; don't assume)
 
-- None pending. Add questions here as they come up.
+- For the Sheikh's team: are `أصول الإيمان`, `نهائي الطحاوية` (a commentary on al-Tahawi), `وجيزالزكاة`, `من التطبيقات المعاصرة للزكاة` and `قضايا معاصرة` his? Which parts of the two co-authored books are his? 19% of `حكم الدين في من تطاول على النبيين` (used as his) also appears in `الصارم`: his wording or Ibn Taymiyya's?
+- For a reviewer: the 165 held records of the extremism dialogue (`نهائي تطرف`), the 26 held encyclopedia records, the 54 answers reworded between editions.
 
 ## Links
 

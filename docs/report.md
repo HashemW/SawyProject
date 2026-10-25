@@ -4,7 +4,7 @@ A running record of how the fatawa and writings of Dr. Salah Al-Sawy (أ.د. ص�
 
 Hashem, with Claude. Last updated 2026-10-24.
 
-**Status.** Step 1 (getting the text out of the sources) is complete for all 116 Word files; one damaged file had to be repaired first (section 5). Step 2a is complete: the fatwa encyclopedia is split into records and its editions deduplicated, giving 12,779 distinct fatawa (section 8). Step 2b, the standalone books and treatises, is next.
+**Status.** Steps 1 and 2 are complete. The text of all 116 Word files is extracted and checked; one damaged file was repaired first (section 5). It is split into records: the fatwa encyclopedia gives 12,779 distinct fatawa after deduplicating its three editions (section 8), and the Sheikh's own standalone books give 682 more records (section 9). The corpus is 13,461 records. Step 3, the index, is next.
 
 ## Contents
 
@@ -16,7 +16,8 @@ Hashem, with Claude. Last updated 2026-10-24.
 6. [Decisions](#6-decisions)
 7. [Open questions](#7-open-questions)
 8. [Step 2a: one record per fatwa (the encyclopedia)](#8-step-2a-one-record-per-fatwa-the-encyclopedia)
-9. [Next: step 2b, the standalone books](#9-next-step-2b-the-standalone-books)
+9. [Step 2b: the standalone books](#9-step-2b-the-standalone-books)
+10. [Next: step 3, the index](#10-next-step-3-the-index)
 - [Appendix A: reproducing the data](#appendix-a-reproducing-the-data)
 - [Appendix B: repository map](#appendix-b-repository-map)
 - [Appendix C: glossary](#appendix-c-glossary)
@@ -51,7 +52,7 @@ The work replaces the generated answers with retrieval of verbatim passages and 
 | Step | What | Status |
 |---|---|---|
 | 1 | Ingest: get every word of the sources out exactly, including footnotes, tables, Quran quotes and honorifics | done (sections 3–5) |
-| 2 | Segment: one record per fatwa (title, question, answer, notes, source) and one per treatise section; dedupe across editions | encyclopedia done (section 8); standalone books next (section 9) |
+| 2 | Segment: one record per fatwa (title, question, answer, notes, source) and one per treatise section; dedupe across editions | done (sections 8–9) |
 | 3 | Index: Arabic-aware keyword search plus multilingual embeddings, over questions and answers | |
 | 4 | Select: rerank candidates, then a strict check that a candidate answers the question; otherwise the fixed "not found" message | |
 | 5 | Voice: TTS of the verbatim text, cached and reviewed per passage; Quran quotes need special care | |
@@ -120,7 +121,7 @@ Most sources are old binary `.doc` files, and LibreOffice is not installed, so W
 
 ### 4.2 From XML to text
 
-`scripts/extract_text.py` reads the XML and keeps what a reader sees: every paragraph, table cell (with its table, row and column), text box and footnote, hidden text and field codes left out and field results kept, footnotes with the numbers Word shows. Each book becomes `json/<book>.json`: blocks in reading order, each with its Word style (fatwa titles carry heading styles in the 2020–23 files), outline level and text, plus spans marking where the text came from something special (Quran quote, honorific, footnote reference, bullet). Footnotes are kept with the same structure.
+`scripts/extract_text.py` reads the XML and keeps what a reader sees: every paragraph, table cell (with its table, row and column), text box and footnote, hidden text and field codes left out and field results kept, footnotes with the numbers Word shows. Each book becomes `json/<book>.json`: blocks in reading order, each with its Word style (fatwa titles carry heading styles in the 2020–23 files), outline level, formatting (alignment, share of bold letters, most common font size; added in step 2b for finding headings) and text, plus spans marking where the text came from something special (Quran quote, honorific, footnote reference, bullet). Footnotes are kept with the same structure.
 
 Three kinds of content are not ordinary characters in these files.
 
@@ -224,10 +225,20 @@ In the full run with the other 115 books, the acceptance check passes for this b
 | 2026-10-24 | In those cases the bot may add AI-written commentary on the related fatawa: text on screen only, labelled as AI-written, never spoken in his voice, never itself a ruling | the one exception to "the model only chooses"; like machine translation, it is kept visibly apart from his words. Generated text can be steered by a manipulated question, so the label and the separation are what protect it |
 | 2026-10-24 | Front end: the ElevenLabs agent for now (custom LLM pointing at this backend), our own app later | the agent exists; our own app later allows reviewed, cached audio |
 | 2026-10-24 | `التعددية السياسية.doc` is used through the repaired copy | section 5 |
+| 2026-10-24 | Standalone books: his single-author books go in as sections, others' forewords left out; the two books co-authored with Dr. Abdullah al-Muslih (and three files excerpted from one of them) are left out; of `الصارم` (his abridgment of Ibn Taymiyya) and `المواجهة` (a multi-speaker debate) only his own parts go in, and the same rule covers the debate transcript later found in `تهافت العلمانية` and documents appended to his books; the two interviews become question-answer records; five files that name no author are held until the Sheikh's team confirms them | only text that is his may be read in his voice; section 9 has the evidence (author lines, signed prefaces, shared paragraphs) |
 
 ## 7. Open questions
 
-No decision is pending. One point to plan for: with the ElevenLabs agent, every answer is synthesized live, so the plan to review each passage's audio before release, Quran pronunciation included (step 5), only fully applies in our own app.
+For the Sheikh's team:
+- Are `أصول الإيمان`, `نهائي الطحاوية` (a commentary on al-Tahawi), `وجيزالزكاة`, `من التطبيقات المعاصرة للزكاة` and `قضايا معاصرة` his? They are held until confirmed. Which parts of the two co-authored books are his?
+- 19% of `حكم الدين في من تطاول على النبيين` also appears in `الصارم`, his abridgment of Ibn Taymiyya: are those passages his wording or Ibn Taymiyya's?
+
+For a person to review (lists in `data/work/records/`):
+- 165 exchanges of the extremism dialogue (`نهائي تطرف`), split by formatting;
+- 26 encyclopedia records held (doubtful Quran quotes, articles, quoted fatawa);
+- 54 fatawa whose answer was reworded between editions (perhaps a changed view).
+
+One point to plan for: with the ElevenLabs agent, every answer is synthesized live, so the plan to review each passage's audio before release, Quran pronunciation included (step 5), only fully applies in our own app.
 
 ## 8. Step 2a: one record per fatwa (the encyclopedia)
 
@@ -268,9 +279,21 @@ The kept copy follows the decisions: the newest edition; a 2020–21 copy instea
 
 Each corpus record carries its title, question, answer, footnotes, chapter, source, its other copies, the Quran and honorific spans, and a normalized copy of its text for search only. That normalized copy is the last item of the original step 2 plan.
 
-## 9. Next: step 2b, the standalone books
+## 9. Step 2b: the standalone books
 
-About 33 books are not part of the encyclopedia. Some are fatawa collections in other formats (`نوازل فقهية على الساحة الأمريكية`, `مالا يسع التاجر جهله`, `المخرج من الفتنة` with a `السؤال` style). Others are treatises (`الصارم`, `التعددية السياسية`, `نظرية السيادة`). Treatises become one record per section, the passage under a heading. Many of them set their headings by direct formatting rather than styles, so the books' tables of contents are the likely way to find the headings. The video fatawa stay out for now (section 6).
+Full write-up: [segmentation.md](segmentation.md#the-standalone-books-segment_bookspy).
+
+**Question.** Which of the 33 books outside the encyclopedia are the Sheikh's own words, and how do they divide into passages the assistant can cite?
+
+**Authorship first.** Before anything was split, each book's title page, signed prefaces and shared paragraphs were read. Two books are co-authored with Dr. Abdullah al-Muslih, and three smaller files turned out to be excerpts of one of them (105 of 107, 68 of 72 and two-thirds of their paragraphs). `الصارم` is his abridgment of Ibn Taymiyya. Two books contain whole debate transcripts with other speakers, two have forewords by others, and several append others' fatawa or council resolutions. Five files name no author. The decisions (section 6) follow from this: 18 of his books go in, two in part, two interviews as question-answer records, and the rest is left out or held. The stretches of others' text inside his books are named in a reviewable table and left out. One finding needed care: in `المواجهة`, the profiles of the secularist debaters state their positions as headlines, which would sound like his rulings if read in his voice. They are left out with the rest of the debate.
+
+**Method.** These books mark headings by formatting (centred, larger, bold) rather than styles, so the extraction now records each paragraph's alignment, bold share and font size. The text is unchanged and the acceptance check still passes. A heading is a short paragraph set apart from the book's own body text, and its level follows its size. Books of questions become question-answer records, like the fatawa: the 108 questions of `تساؤلات أمريكية`, the 82 issues of `المسائل الأساسية` with their «أفكار أولية حول الإجابة», and the 130 «*»/«الجواب:» exchanges of `تكلم الدعاة`. Each step was checked by reading every book's list of sections and parts. That review caught a debate transcript taken for his text, a foreword kept while his own introduction was dropped, an interview's framing taken for questions, contents lines taken for questions, and chapters a file repeats twice; each was fixed and re-checked.
+
+**Result.** 859 records from the books (374 sections, 485 questions and answers), 694 usable. The 165 exchanges of `نهائي تطرف`, a dialogue whose questions are not reliably marked, are held for a person to check. With 12 copies of already-kept records left out, **the corpus is 13,461 records: 12,779 fatawa and 682 book records**, every one the Sheikh's own text with its source.
+
+## 10. Next: step 3, the index
+
+Search over the corpus: Arabic-aware keyword search plus multilingual embeddings, over title and question and over the answer, using each record's normalized search copy. Long book sections (median 778 words, some over 5,000) will be indexed in passages. Before that, the review lists (section 7) can go to the Sheikh's team.
 
 ## Appendix A: reproducing the data
 
@@ -283,6 +306,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\word_export.ps1 -Inp
 python -I -X utf8 scripts\extract_text.py --word data\work\word --quran data\raw\quran\quran-uthmani.txt --out data\work\extract
 python -I -X utf8 scripts\check_extract.py --word data\work\word --extract data\work\extract
 python -I -X utf8 scripts\segment.py --extract data\work\extract --out data\work\records
+python -I -X utf8 scripts\segment_books.py --extract data\work\extract --out data\work\records
 python -I -X utf8 scripts\dedupe.py --records data\work\records
 ```
 
@@ -307,7 +331,8 @@ The first export records the damaged file as an error; the second replaces that 
 | `scripts/repair_doc.py` | repaired copy of `التعددية السياسية.doc` |
 | `scripts/find_glyph_fonts.py` | where given glyph words occur in the books, and in which fonts |
 | `scripts/segment.py` | the encyclopedia → one record per fatwa, non-fatwa parts, review flags, coverage check |
-| `scripts/dedupe.py` | copies of each fatwa across editions → the corpus, one kept copy each, with a search copy of its text |
+| `scripts/segment_books.py` | the standalone books → sections and question-answer records, per the authorship table, with others' text left out |
+| `scripts/dedupe.py` | copies of each fatwa across editions → the corpus, one kept copy each, plus the book records, each with a search copy of its text |
 
 ## Appendix C: glossary
 

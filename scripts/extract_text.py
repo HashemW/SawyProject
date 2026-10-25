@@ -62,11 +62,13 @@ def on(el, name):
 # ---------------------------------------------------------------- reading Word's XML
 
 class Styles:
-    """Style names, outline levels and fonts; which fonts are symbol fonts (charset 02)."""
+    """Style names, outline levels and fonts; which fonts are symbol fonts (charset 02); and the
+    bold, size and alignment a style sets (for finding headings set by formatting)."""
 
     def __init__(self, raw):
         self.symbol = set(re.findall(r'<w:font w:name="([^"]+)">(?:(?!</w:font>).)*?<w:charset w:val="02"', raw, re.S))
         self.name, self.outline, self.based, self.fonts, self.caps = {}, {}, {}, {}, {}
+        self.bold, self.size, self.jc = {}, {}, {}
         part = re.search(r'<pkg:part pkg:name="/word/styles.xml".*?</pkg:part>', raw, re.S)
         for m in re.finditer(r"<w:style [^>]*w:styleId=\"([^\"]+)\"[^>]*>(.*?)</w:style>", part.group(0) if part else "", re.S):
             sid, body = m.groups()
@@ -84,8 +86,22 @@ class Styles:
             c = re.search(r'<w:rPr>(?:(?!</w:rPr>).)*?<w:caps(?: w:val="([^"]+)")?/>', body, re.S)
             if c:
                 self.caps[sid] = c.group(1) not in ("0", "false", "off")
+            rpr = re.search(r"<w:rPr>(.*?)</w:rPr>", body, re.S)
+            if rpr:
+                bold = re.search(r'<w:bCs(?: w:val="([^"]+)")?/>', rpr.group(1)) or re.search(r'<w:b(?: w:val="([^"]+)")?/>', rpr.group(1))
+                if bold:
+                    self.bold[sid] = bold.group(1) not in ("0", "false", "off")
+                size = re.search(r'<w:szCs w:val="(\d+)"', rpr.group(1)) or re.search(r'<w:sz w:val="(\d+)"', rpr.group(1))
+                if size:
+                    self.size[sid] = int(size.group(1))
+            jc = re.search(r'<w:pPr>(?:(?!</w:pPr>).)*?<w:jc w:val="([^"]+)"', body, re.S)
+            if jc:
+                self.jc[sid] = jc.group(1)
         d = re.search(r"<w:rPrDefault>.*?<w:rFonts ([^>]*)/>", raw, re.S)
         self.default_fonts = dict(re.findall(r'w:(ascii|hAnsi|cs)="([^"]+)"', d.group(1))) if d else {}
+        d = re.search(r"<w:rPrDefault>(.*?)</w:rPrDefault>", raw, re.S)
+        size = d and (re.search(r'<w:szCs w:val="(\d+)"', d.group(1)) or re.search(r'<w:sz w:val="(\d+)"', d.group(1)))
+        self.default_size = int(size.group(1)) if size else 20      # Word's default: 10 pt
 
     def chain(self, sid):
         seen = []
@@ -106,6 +122,15 @@ class Styles:
     def caps_of(self, sid):
         return next((self.caps[s] for s in self.chain(sid) if s in self.caps), None)
 
+    def bold_of(self, sid):
+        return next((self.bold[s] for s in self.chain(sid) if s in self.bold), None)
+
+    def size_of(self, sid):
+        return next((self.size[s] for s in self.chain(sid) if s in self.size), None)
+
+    def jc_of(self, sid):
+        return next((self.jc[s] for s in self.chain(sid) if s in self.jc), None)
+
 
 class Block:
     def __init__(self, kind, style=None, outline=None, table=None):
@@ -113,6 +138,9 @@ class Block:
         self.pieces = []          # ("t", text, toc) | ("g", key, font, code) | ("ref", n) | ("mark",)
         self.toc_chars = 0
         self.chars = 0
+        self.jc = None                                       # paragraph alignment set on the paragraph
+        self.letters, self.bold_letters = 0, 0              # letters in text runs, and how many are bold
+        self.sizes = collections.Counter()                  # font size (half-points) per letter
 
     def text(self, s, toc):
         if s:
@@ -193,6 +221,8 @@ class Reader:
             self._stack[-1].sid = ps.get(W + "val") if ps is not None else None
             o = el.find(W + "outlineLvl")
             self._stack[-1].outline = int(o.get(W + "val")) if o is not None else None
+            jc = el.find(W + "jc")
+            self._stack[-1].jc = jc.get(W + "val") if jc is not None else None
         elif tag == W + "p":
             b = self._stack.pop() if self._stack else None
             if b is not None:
@@ -240,6 +270,19 @@ class Reader:
             return self.styles.default_fonts.get(slot)
 
         complex_script = on(rpr, "rtl") or on(rpr, "cs")
+        # Bold and size as shown (run, then character style, then paragraph style), for telling
+        # headings set by direct formatting from body text. They do not change the text.
+        sid = getattr(b, "sid", None)
+        bold = next((on(rpr, n) for n in ("bCs", "b") if rpr is not None and rpr.find(W + n) is not None), None)
+        if bold is None:
+            bold = next((x for x in (self.styles.bold_of(rstyle), self.styles.bold_of(sid)) if x is not None), False)
+        sz = next((rpr.find(W + n).get(W + "val") for n in ("szCs", "sz") if rpr is not None and rpr.find(W + n) is not None), None)
+        size = int(sz) if sz and sz.isdigit() else (self.styles.size_of(rstyle) or self.styles.size_of(sid) or self.styles.default_size)
+        letters = sum(1 for t in el.iter(W + "t") for c in (t.text or "") if c.isalpha())
+        if letters:
+            b.letters += letters
+            b.bold_letters += letters if bold else 0
+            b.sizes[size] += letters
         # "All caps" formatting (on the run, its character style or the paragraph's style, e.g.
         # TOC 1) is shown, and read by Word, in capitals.
         if rpr is not None and rpr.find(W + "caps") is not None:
@@ -669,7 +712,11 @@ def write_document(path, quran, res, out):
     blocks = []
     for b in reader.blocks:
         text, spans = r.block(b)
-        blocks.append({"kind": b.kind, "style": b.style, "outline": b.outline, "table": b.table, "text": text, "spans": spans})
+        # How the paragraph looks: alignment, share of bold letters, most common font size (half-points).
+        fmt = {"align": b.jc or reader.styles.jc_of(getattr(b, "sid", None)),
+               "bold": round(b.bold_letters / b.letters, 2) if b.letters else None,
+               "size": b.sizes.most_common(1)[0][0] if b.sizes else None}
+        blocks.append({"kind": b.kind, "style": b.style, "outline": b.outline, "table": b.table, "fmt": fmt, "text": text, "spans": spans})
     note_out = []
     for kind, xid, n in notes:
         paras = []

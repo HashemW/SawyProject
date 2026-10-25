@@ -199,24 +199,63 @@ def main():
             rec["search"] = dict(title_question=search_text(kept["title"] + "\n" + kept["question"]), answer=search_text(kept["answer"]))
             corpus.append(rec)
     articles = [r for r in recs if r["kind"] == "article"]
+    # The standalone books (segment_books.py): their usable records join the corpus as they are.
+    # They are separate works, not editions of the fatawa; how much text they share with the kept
+    # fatawa is measured and reported.
+    books = []
+    if (args.records / "books.jsonl").exists():
+        books = [json.loads(l) for l in open(args.records / "books.jsonl", encoding="utf-8")]
+    # A book record whose text is 90% contained in one record already kept (a fatwa, or an earlier
+    # book record: one book reprints another) is a copy and stays out; one that shares half its text
+    # with the kept fatawa as a whole is kept and listed.
+    owner = collections.defaultdict(list)
+    for k, r in enumerate(corpus):
+        for s in shingles(words(r["answer"])):
+            owner[s].append(k)
+    book_overlap, book_copies = [], []
+    for r in books:
+        if r["status"] != "ok":
+            continue
+        sh = shingles(words(r["answer"]))
+        hits = collections.Counter(k for s in sh for k in owner.get(s, ()) if len(owner[s]) <= 40)
+        best, n = hits.most_common(1)[0] if hits else (None, 0)
+        if sh and n / len(sh) >= 0.9:
+            book_copies.append((r["id"], r["title"], corpus[best]["id"]))
+            continue
+        shared = sum(1 for s in sh if s in owner)
+        if sh and shared / len(sh) >= 0.5:
+            book_overlap.append((r["id"], r["title"], round(shared / len(sh), 2)))
+        for s in sh:
+            owner[s].append(len(corpus))
+        rec = dict(r)
+        rec["group"], rec["copies"] = None, []
+        rec["search"] = dict(title_question=search_text(r["title"] + "\n" + r["question"]), answer=search_text(r["answer"]))
+        corpus.append(rec)
     with open(args.records / "corpus.jsonl", "w", encoding="utf-8") as f:
         for r in corpus:
             f.write(json.dumps(r, ensure_ascii=False) + "\n")
     with open(args.records / "groups.jsonl", "w", encoding="utf-8") as f:
         for g in glines:
             f.write(json.dumps(g, ensure_ascii=False) + "\n")
-    by_ed = collections.Counter(r["edition"] for r in corpus)
+    fatawa_kept = [r for r in corpus if "edition" in r]
+    by_ed = collections.Counter(r["edition"] for r in fatawa_kept)
     sizes = collections.Counter(min(len(g["members"]), 5) for g in glines)
-    summary = dict(fatawa_records=len(fatawa), groups=len(glines), kept=len(corpus), pairs_linked=pairs, links_refused=refused,
+    summary = dict(fatawa_records=len(fatawa), groups=len(glines), kept=len(fatawa_kept), pairs_linked=pairs, links_refused=refused,
                    kept_by_edition=dict(by_ed), choice=dict(why_count), group_sizes={("5+" if k == 5 else str(k)): v for k, v in sorted(sizes.items())},
                    same_answer_different_question=len(same_answer), same_question_extended_answer=len(extended),
                    same_question_reworded_answer=len(same_question),
-                   articles_held=len(articles))
+                   articles_held=len(articles),
+                   book_records_in_corpus=len(corpus) - len(fatawa_kept),
+                   book_records_held=sum(1 for r in books if r["status"] != "ok"),
+                   book_records_mostly_in_fatawa=len(book_overlap),
+                   book_records_copies_left_out=len(book_copies),
+                   corpus_total=len(corpus))
     (args.records / "dedupe.json").write_text(json.dumps(dict(summary, same_answer=same_answer, same_question=same_question,
                                                               extended=extended), ensure_ascii=False, indent=1), encoding="utf-8")
     title = {r["id"]: r["title"] for r in recs}
     lines = ["# Dedupe report", "",
-             f"- Fatawa records (all editions): {len(fatawa):,}; groups of copies: {len(glines):,}; kept in the corpus: {len(corpus):,}",
+             f"- Fatawa records (all editions): {len(fatawa):,}; groups of copies: {len(glines):,}; kept: {len(glines) - why_count['no usable copy']:,}",
+             f"- Book records added from the standalone books: {summary['book_records_in_corpus']:,} ({summary['book_records_held']} held); corpus total: {len(corpus):,}",
              "- Kept by edition: " + ", ".join(f"{k} {v:,}" for k, v in by_ed.most_common()),
              "- How the kept copy was chosen: " + ", ".join(f"{k} {v:,}" for k, v in why_count.most_common()),
              "- Copies per group: " + ", ".join(f"{k}: {v:,}" for k, v in summary["group_sizes"].items()),
@@ -227,6 +266,10 @@ def main():
     lines += [f"- {a} ~ {b} «{title[a][:70]}» (answer overlap {x})" for a, b, x in same_question]
     lines += ["", f"## Same question, answer extended in a later copy ({len(extended)}): one fatwa, newest kept", ""]
     lines += [f"- {a} ~ {b} «{title[a][:70]}»" for a, b, x in extended]
+    lines += ["", f"## Book records that are copies of a kept record ({len(book_copies)}): left out", ""]
+    lines += [f"- {a} «{t[:70]}» = {b}" for a, t, b in book_copies]
+    lines += ["", f"## Book records whose text is mostly in kept records too ({len(book_overlap)}): kept", ""]
+    lines += [f"- {a} «{t[:70]}» ({x:.0%} of its 5-word sequences)" for a, t, x in book_overlap]
     (args.records / "dedupe.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
     print(json.dumps(summary, ensure_ascii=False, indent=1))
 

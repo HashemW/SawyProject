@@ -1,6 +1,8 @@
-# Records: one per fatwa
+# Records: one per fatwa, section or question
 
-Done 2026-10-24 by Claude for Hashem, for the 80 files of the fatwa encyclopedia (`موسوعة فتاوى المغتربين`): the 32 volumes of 2011–2017 (`NN book.doc`), the 25 chapter files of 2020–21 (`NN <chapter>.doc`, chapter 01 as `01-1`…`01-3`) and the 23 chapter files of 2022–23 (`NN (2) <chapter>.docx`). The standalone books and treatises come next. Volumes 33, 35 and 36 are empty templates and are skipped.
+Done 2026-10-24 by Claude for Hashem. The fatwa encyclopedia comes first; the standalone books are in [their own section](#the-standalone-books-segment_bookspy).
+
+The encyclopedia: the 80 files of the fatwa encyclopedia (`موسوعة فتاوى المغتربين`): the 32 volumes of 2011–2017 (`NN book.doc`), the 25 chapter files of 2020–21 (`NN <chapter>.doc`, chapter 01 as `01-1`…`01-3`) and the 23 chapter files of 2022–23 (`NN (2) <chapter>.docx`). The standalone books and treatises come next. Volumes 33, 35 and 36 are empty templates and are skipped.
 
 **Result.** 21,711 fatawa and 9 titled articles, with every non-empty paragraph of the 80 files in exactly one record or one listed non-fatwa part. After grouping the copies of each fatwa across editions, **12,779 distinct fatawa** form the corpus (1,869 from the 2022–23 files, 8,732 from 2020–21, 2,178 found only in the volumes). 26 records are held for review and kept out (12 with a doubtful Quran quote, 9 articles, 5 quoted fatawa of other scholars or short answers without his opening).
 
@@ -8,6 +10,7 @@ Everything is local (`data/work/records/`, gitignored). Reproduce with:
 
 ```
 python -I -X utf8 scripts\segment.py --extract data\work\extract --out data\work\records
+python -I -X utf8 scripts\segment_books.py --extract data\work\extract --out data\work\records
 python -I -X utf8 scripts\dedupe.py --records data\work\records
 ```
 
@@ -72,8 +75,36 @@ Most fatawa exist in more than one edition. The 2020–21 chapter files rearrang
 
 Recall check: of the 2,178 fatawa kept only from the volumes, 104 share a title with a fatwa in a later edition; in a sample these are different askers with different questions under a generic title («العمل في المصارف الربوية»).
 
+## The standalone books (`segment_books.py`)
+
+Done the same day. Of the 33 standalone files, 22 are used, in whole or in part (18 of his books, 2 in part, 2 interviews), under the authorship decisions of 2026-10-24 (CLAUDE.md); the script's `BOOKS` table records, per file, what it is and how it is used.
+
+| | Files |
+|---|---|
+| His own books, split into sections (or questions) | 18: `فاعلم أنه لا إله إلا الله`, `قضية تطبيق الشريعة`, `أدب طلب العلم`, `التعددية السياسية`, `المحاورة`, `المخرج من الفتنة`, `المسائل الأساسية`, `تساؤلات أمريكية`, `تهافت العلمانية`, `جماعة المسلمين`, `الحرمات والحقوق الإنسانية في خطبة الوداع`, `حكم الدين في من تطاول على النبيين`, `قراءة في كتاب دعاة لا قضاة`, `مدى شرعية الانتماء`, `موقف الإسلام من العلمانية`, `نظرية السيادة`, `نوازل فقهية`, `وقفات هادئة` |
+| Only his own parts | `الصارم` (his introduction to the abridgment of Ibn Taymiyya), `المواجهة` (his seven essays) |
+| Interviews, as question-answer records | `تكلم الدعاة`, `نهائي تطرف` (the latter held for review) |
+| Left out: co-authored with Dr. Abdullah al-Muslih, or excerpts of such a book | 5 |
+| Held: no author line | 5 |
+| Duplicate file | `قراءة في كتاب دعاة لا قضاة` (byte-identical to `دعاة لا قضاة`) |
+
+**Who wrote what.** Each file's title page, signed prefaces and shared paragraphs were checked before splitting. Paragraph overlap found the excerpts: `البيوع وأحكامها` (105 of 107 paragraphs), `المضاربة وأحكامها` (68 of 72) and two-thirds of `المعاملات الربوية` come from the co-authored `مالا يسع التاجر جهله`. Reading the books found others' text inside his own:
+- forewords by Dr. Abd al-Ghaffar Aziz (`تهافت العلمانية`) and Dr. Ali al-Salous (`وقفات هادئة`), and Dr. Muhammad Imara's preface (`المواجهة`);
+- debate transcripts with other speakers: `تهافت العلمانية` contains the whole 1992 debate with Imara, al-Awa, Fuad Zakariya, Faraj Fuda and others, after his own essay; `المواجهة` contains the Cairo Book Fair debate and profiles of the debaters whose headings state the secularists' positions («الرقص مشروع تحقيقا لمصلحة المجتمع في الترفيه!!»);
+- appended documents: council resolutions and Sheikh Mahmoud al-Tahhan's reservation (`وقفات هادئة`), the Hidaya association's fatwa (`فاعلم`), and an anthology of others' sayings (`المواجهة`).
+All of these are listed as parts and left out; the stretches are named in the `BOOKS` table by the paragraph that begins each one, so they can be checked.
+
+**Sections.** These books mark headings by direct formatting, which the extraction now records per paragraph (alignment, share of bold letters, most common font size; text unchanged, the acceptance check still passes). A heading is a short paragraph (at most 20 words) set apart from the book's body text: centred and larger or bold, or larger and bold; levels follow size (`الباب` at +64 half-points, `الفصل` +40, `المبحث` +4 in one book). Bold lead-ins at body size, poetry and the basmala are not headings. Two books set sub-headings otherwise and have an option: unjustified short lines (`أدب طلب العلم`), short noun phrases ending with a colon (`موقف الإسلام`, `حكم الدين`). The title page, tables of contents, headings without text and sections the file repeats word for word (`دعاة لا قضاة` has four chapters twice) become parts.
+
+**Questions.** `تساؤلات أمريكية` answers questions put by the American public, numbered and set in one style (108 questions; question 31 is in its contents but not in its body); `المسائل الأساسية` states 82 issues, each followed by «أفكار أولية حول الإجابة» and his answer; `تكلم الدعاة` marks the interviewer's questions with «*» and his replies with «الجواب:» (130; the magazine's own analysis before the interview is left out, and replies run across the editor's subheadings). These become question-answer records. `نهائي تطرف` is a recorded dialogue whose questions are mostly, but not always, bold; its 165 records are held until a person checks the split, since a misplaced line would put the moderator's words in his voice.
+
+**Result.** 859 records (374 sections, 485 questions and answers), 694 usable; 165 held. In the corpus, 12 that are copies of a kept record are left out (the repeated chapters, three `نوازل فقهية` sections that are one fatwa of volume 9), and 42 that share half their text with kept records are kept and listed. **The corpus: 13,461 records**, 12,779 fatawa and 682 book records. Every non-empty paragraph of each book that is split is in exactly one record or part.
+
 ## Limits
 
 - Boundaries come from layout and formulas, so a fatwa whose title is a plain paragraph, whose answer has no closing formula, and whose question has no shape cue stays joined to the previous one (it would be among the 6 follow-ups).
 - Authorship cannot always be read from the layout. An answer that quotes another scholar's fatwa or a council resolution in full is kept whole, as the Sheikh published it; only the 5 cases where a quoted fatwa stood as a record of its own are held.
 - The 54 reworded answers keep the newest wording; an older wording may reflect an earlier view.
+- Book sections are long (median 778 words; 9 over 5,000, the longest 8,542); indexing will need passages within them. Question-answer records from the books have a median of 167 words.
+- 19% of `حكم الدين في من تطاول على النبيين` (69 paragraphs) also appears in `الصارم`, his abridgment of Ibn Taymiyya; the book is his and is used, but those passages may be Ibn Taymiyya's wording.
+- In books, authorship was read from title pages, signatures and headings; a quotation without a heading inside one of his sections stays in it, as in the fatawa.
