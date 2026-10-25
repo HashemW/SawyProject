@@ -1,6 +1,6 @@
 """Split the standalone books into records: one per section (the passage under a heading) for his
 own books and treatises, one per question and answer for the two interviews; the books the
-project leaves out or holds (decisions 2026-10-24) are listed, not split.
+project leaves out (decisions 2026-10-24) are listed, not split.
 
 Input:  --extract  output folder of extract_text.py (json/<book>.json, with paragraph formatting)
 Output: --out      books.jsonl, books_parts.jsonl, books.md, books.json
@@ -37,8 +37,8 @@ DIACRITICS = re.compile("[" + "".join(map(chr, [*range(0x610, 0x61B), *range(0x6
 #   his        his own book: split into sections (forewords by others left out)
 #   partial    only the sections listed as his
 #   interview  question-answer records; the interviewer's framing is left out
-#   out        co-authored with Dr. Abdullah al-Muslih, or an excerpt of such a book: not used
-#   held       no author line: held until the Sheikh's team confirms
+#   out        not used: co-authored with Dr. Abdullah al-Muslih, an excerpt of such a book, or a
+#              book with no author line
 #   duplicate  the same file as another book
 BOOKS = {
     "fa`alm.doc": ("his", "فاعلم أنه لا إله إلا الله", {"exclude": [
@@ -81,11 +81,12 @@ BOOKS = {
     "البيوع وأحكامها.doc": ("out", "البيوع وأحكامها", {}),
     "المضاربة وأحكامها.doc": ("out", "المضاربة وأحكامها", {}),
     "المعاملات الربوية والبدائل الشرعية 18-3-2007.doc": ("out", "المعاملات الربوية والبدائل الشرعية", {}),
-    "أصول الإيمان.doc": ("held", "أصول الإيمان", {}),
-    "نهائي الطحاوية.doc": ("held", "شرح العقيدة الطحاوية", {}),
-    "وجيزالزكاة.doc": ("held", "الوجيز في أحكام الزكاة", {}),
-    "من التطبيقات المعاصرة للزكاة.doc": ("held", "من التطبيقات المعاصرة للزكاة", {}),
-    "قضايا معاصرة.doc": ("held", "قضايا معاصرة", {}),
+    # No author line: dropped, not held for the Sheikh's team to confirm; his own books are enough.
+    "أصول الإيمان.doc": ("out", "أصول الإيمان", {}),
+    "نهائي الطحاوية.doc": ("out", "شرح العقيدة الطحاوية", {}),
+    "وجيزالزكاة.doc": ("out", "الوجيز في أحكام الزكاة", {}),
+    "من التطبيقات المعاصرة للزكاة.doc": ("out", "من التطبيقات المعاصرة للزكاة", {}),
+    "قضايا معاصرة.doc": ("out", "قضايا معاصرة", {}),
     "قراءة في كتاب دعاة لا قضاة.doc": ("duplicate", "قراءة في كتاب دعاة لا قضاة", {"same_as": "دعاة لا قضاة.doc"}),
 }
 
@@ -368,7 +369,7 @@ def split_qa(book, code, title, opts):
         if opts.get("review"):
             flags.append(opts["review"])
         held = [f.split(":")[0] for f in flags if f.startswith("flagged quote")] + ([opts["review"]] if opts.get("review") else [])
-        first = qtext.split("\n")[0]
+        first = next((line for line in qtext.split("\n") if line.strip()), "")
         recs.append(dict(id=f"{code}-{len(recs) + 1:04d}", kind="fatwa", source=book.name, collection=title, chapter=None,
                          number=None, title=" ".join(first.split()), question=qtext, answer=atext,
                          notes=notes, spans=dict(title=[], question=qspans, answer=aspans),

@@ -1,0 +1,89 @@
+{
+ "bge-m3 | dense q": {
+  "dense:q:bge-m3": 1
+ },
+ "bge-m3 | dense p": {
+  "dense:p:bge-m3": 1
+ },
+ "bge-m3 | dense q+p": {
+  "dense:q:bge-m3": 1,
+  "dense:p:bge-m3": 1
+ },
+ "bge-m3 | all four equal": {
+  "bm25:q:snowball": 1,
+  "bm25:p:snowball": 1,
+  "dense:q:bge-m3": 1,
+  "dense:p:bge-m3": 1
+ },
+ "bge-m3 | bm25 q + dense q+p": {
+  "bm25:q:snowball": 1,
+  "dense:q:bge-m3": 1,
+  "dense:p:bge-m3": 1
+ },
+ "bge-m3 | bm25 q, bm25 p 0.5, dense q+p": {
+  "bm25:q:snowball": 1,
+  "bm25:p:snowball": 0.5,
+  "dense:q:bge-m3": 1,
+  "dense:p:bge-m3": 1
+ },
+ "bge-m3 | bm25 q + dense q, dense p 0.5": {
+  "bm25:q:snowball": 1,
+  "dense:q:bge-m3": 1,
+  "dense:p:bge-m3": 0.5
+ },
+ "bge-m3 | bm25 q 0.5 + dense q+p": {
+  "bm25:q:snowball": 0.5,
+  "dense:q:bge-m3": 1,
+  "dense:p:bge-m3": 1
+ },
+ "bge-m3 | bm25 doc + dense q+p": {
+  "bm25:doc:snowball": 1,
+  "dense:q:bge-m3": 1,
+  "dense:p:bge-m3": 1
+ },
+ "e5-large-instruct | dense q": {
+  "dense:q:e5-large-instruct": 1
+ },
+ "e5-large-instruct | dense p": {
+  "dense:p:e5-large-instruct": 1
+ },
+ "e5-large-instruct | dense q+p": {
+  "dense:q:e5-large-instruct": 1,
+  "dense:p:e5-large-instruct": 1
+ },
+ "e5-large-instruct | all four equal": {
+  "bm25:q:snowball": 1,
+  "bm25:p:snowball": 1,
+  "dense:q:e5-large-instruct": 1,
+  "dense:p:e5-large-instruct": 1
+ },
+ "e5-large-instruct | bm25 q + dense q+p": {
+  "bm25:q:snowball": 1,
+  "dense:q:e5-large-instruct": 1,
+  "dense:p:e5-large-instruct": 1
+ },
+ "e5-large-instruct | bm25 q, bm25 p 0.5, dense q+p": {
+  "bm25:q:snowball": 1,
+  "bm25:p:snowball": 0.5,
+  "dense:q:e5-large-instruct": 1,
+  "dense:p:e5-large-instruct": 1
+ },
+ "e5-large-instruct | bm25 q + dense q, dense p 0.5": {
+  "bm25:q:snowball": 1,
+  "dense:q:e5-large-instruct": 1,
+  "dense:p:e5-large-instruct": 0.5
+ },
+ "e5-large-instruct | bm25 q 0.5 + dense q+p": {
+  "bm25:q:snowball": 0.5,
+  "dense:q:e5-large-instruct": 1,
+  "dense:p:e5-large-instruct": 1
+ },
+ "e5-large-instruct | bm25 doc + dense q+p": {
+  "bm25:doc:snowball": 1,
+  "dense:q:e5-large-instruct": 1,
+  "dense:p:e5-large-instruct": 1
+ },
+ "bm25 q snowball alone": {
+  "bm25:q:snowball": 1
+ }
+}

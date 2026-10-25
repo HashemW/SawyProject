@@ -20,7 +20,8 @@ question
 - [x] Text re-extracted from Word with footnotes, tables, honorifics and the exact Quran quotes, and checked word for word against Word's own text, all 116 files (one repaired first): [docs/extraction.md](docs/extraction.md)
 - [x] Split the fatwa encyclopedia into one record per fatwa and deduplicate its three editions: 12,779 distinct fatawa ([docs/segmentation.md](docs/segmentation.md))
 - [x] Split the Sheikh's own standalone books into sections and question-answer records, leaving out others' text: 682 more records; corpus of 13,461
-- [ ] Search index and strict answer selection
+- [x] Search index: keyword search and multilingual embeddings, fused, measured on 450 test questions; the right record is in the first 20 results for 85% of held-out questions and the first 50 for 95% ([docs/retrieval.md](docs/retrieval.md))
+- [ ] Strict answer selection
 - [ ] Voice output with audio caching
 - [ ] Evaluation: golden set, abstention, and injection tests
 

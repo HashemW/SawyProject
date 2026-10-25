@@ -1,0 +1,17 @@
+# Search index and evaluation (scripts/build_index.py, search.py, eval_retrieval.py).
+# The other scripts use only the standard library.
+#
+# Setup (Windows, Python 3.13), in a project venv:
+#   python -m venv .venv
+#   .venv\Scripts\python -m pip install torch==2.11.0 --index-url https://download.pytorch.org/whl/cu128
+#   .venv\Scripts\python -m pip install -r requirements.txt
+# Without an NVIDIA GPU, install torch from PyPI instead (CPU build); search still works, the
+# embeddings just take longer to build.
+torch==2.11.0
+sentence-transformers==6.2.0
+transformers==5.20.2
+tokenizers==0.23.3
+safetensors==0.8.0
+PyStemmer==3.1.0
+numpy==2.5.4
+scipy==1.18.1

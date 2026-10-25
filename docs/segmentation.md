@@ -70,7 +70,7 @@ Most fatawa exist in more than one edition. The 2020–21 chapter files rearrang
 | Groups (distinct fatawa) | 12,789: 4,288 single, 8,098 pairs, 387 triples, 16 larger |
 | Kept | 12,779: 2022–23 1,869; 2020–21 8,732; volumes only 2,178 |
 | Same question, answer extended in a later copy | 448 (one fatwa; the longer, newer copy kept) |
-| Same question, answer reworded | 54, listed in `dedupe.md` to check for a changed view |
+| Same question, answer reworded | 54, listed in `dedupe.md` (one fatwa, newest kept; no review needed, see Limits) |
 | Same answer, different questions | 79, kept as separate fatawa and listed |
 
 Recall check: of the 2,178 fatawa kept only from the volumes, 104 share a title with a fatwa in a later edition; in a sample these are different askers with different questions under a generic title («العمل في المصارف الربوية»).
@@ -85,7 +85,7 @@ Done the same day. Of the 33 standalone files, 22 are used, in whole or in part 
 | Only his own parts | `الصارم` (his introduction to the abridgment of Ibn Taymiyya), `المواجهة` (his seven essays) |
 | Interviews, as question-answer records | `تكلم الدعاة`, `نهائي تطرف` (the latter held for review) |
 | Left out: co-authored with Dr. Abdullah al-Muslih, or excerpts of such a book | 5 |
-| Held: no author line | 5 |
+| Left out: no author line (`أصول الإيمان`, `نهائي الطحاوية`, `وجيزالزكاة`, `من التطبيقات المعاصرة للزكاة`, `قضايا معاصرة`; first held, then dropped by decision the same day) | 5 |
 | Duplicate file | `قراءة في كتاب دعاة لا قضاة` (byte-identical to `دعاة لا قضاة`) |
 
 **Who wrote what.** Each file's title page, signed prefaces and shared paragraphs were checked before splitting. Paragraph overlap found the excerpts: `البيوع وأحكامها` (105 of 107 paragraphs), `المضاربة وأحكامها` (68 of 72) and two-thirds of `المعاملات الربوية` come from the co-authored `مالا يسع التاجر جهله`. Reading the books found others' text inside his own:
@@ -104,7 +104,8 @@ All of these are listed as parts and left out; the stretches are named in the `B
 
 - Boundaries come from layout and formulas, so a fatwa whose title is a plain paragraph, whose answer has no closing formula, and whose question has no shape cue stays joined to the previous one (it would be among the 6 follow-ups).
 - Authorship cannot always be read from the layout. An answer that quotes another scholar's fatwa or a council resolution in full is kept whole, as the Sheikh published it; only the 5 cases where a quoted fatwa stood as a record of its own are held.
-- The 54 reworded answers keep the newest wording; an older wording may reflect an earlier view.
+- The 54 reworded answers keep the newest wording. The 12 pairs whose answers differ most were read in full: 8 give the same ruling, rewritten or expanded, and 4 changed it, each time between the 2011–17 volume and the 2020–21 chapter file. On forgetting the seventh lap of sa'i, the old copy (V23-0087) says nothing is owed, the new one (C10-0195) that the sa'i is incomplete and the person still in ihram. On an estate left to a brother's and a sister's children, the old copy (V13-0192) gives the sister's children a third, the new one (C12-0132) everything to the brother's sons. On whether a shower for cleanliness counts for wudu, yes (V07-0037), then no, only an obligatory ghusl does (C04-0102). On fasting the day of Arafah as a make-up day of Ramadan, not both at once (V06-0168), then the make-up is valid and may earn Arafah's reward too (C09-0062). Keeping the newest copy gives his later view, so the list needs no review (decision 2026-10-24); both wordings are his.
+- The reverse case: where an in-progress 2022–23 copy gave way to the 2020–21 one (393 groups), the kept text is identical or nearly so (5-word overlap ≥ 0.6) in 380; in 13 the 2022–23 copy is extended or rewritten, and there the corpus has the earlier wording.
 - Book sections are long (median 778 words; 9 over 5,000, the longest 8,542); indexing will need passages within them. Question-answer records from the books have a median of 167 words.
-- 19% of `حكم الدين في من تطاول على النبيين` (69 paragraphs) also appears in `الصارم`, his abridgment of Ibn Taymiyya; the book is his and is used, but those passages may be Ibn Taymiyya's wording.
+- 19% of `حكم الدين في من تطاول على النبيين` (69 paragraphs) also appears in `الصارم`, his abridgment of Ibn Taymiyya. Those passages may be Ibn Taymiyya's wording, but they are in his book, which is used in full (decision 2026-10-24).
 - In books, authorship was read from title pages, signatures and headings; a quotation without a heading inside one of his sections stays in it, as in the fatawa.

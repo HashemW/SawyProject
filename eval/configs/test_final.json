@@ -1,0 +1,56 @@
+{
+ "chosen: e5+bge, dense q 1, p .5, bm25 q .5, k=10": {
+  "weights": {
+   "dense:q:bge-m3": 1,
+   "dense:q:e5-large-instruct": 1,
+   "dense:p:bge-m3": 0.5,
+   "dense:p:e5-large-instruct": 0.5,
+   "bm25:q:snowball": 0.5
+  },
+  "k": 10
+ },
+ "e5+bge dense q": {
+  "weights": {
+   "dense:q:bge-m3": 1,
+   "dense:q:e5-large-instruct": 1
+  },
+  "k": 10
+ },
+ "e5 alone, same weights": {
+  "weights": {
+   "dense:q:e5-large-instruct": 1,
+   "dense:p:e5-large-instruct": 0.5,
+   "bm25:q:snowball": 0.5
+  },
+  "k": 10
+ },
+ "bge alone, same weights": {
+  "weights": {
+   "dense:q:bge-m3": 1,
+   "dense:p:bge-m3": 0.5,
+   "bm25:q:snowball": 0.5
+  },
+  "k": 10
+ },
+ "e5+bge, all lists equal, k=60": {
+  "weights": {
+   "dense:q:bge-m3": 1,
+   "dense:q:e5-large-instruct": 1,
+   "dense:p:bge-m3": 1,
+   "dense:p:e5-large-instruct": 1,
+   "bm25:q:snowball": 1,
+   "bm25:p:snowball": 1
+  },
+  "k": 60
+ },
+ "bm25 q snowball": {
+  "weights": {
+   "bm25:q:snowball": 1
+  }
+ },
+ "bm25 q none": {
+  "weights": {
+   "bm25:q:none": 1
+  }
+ }
+}

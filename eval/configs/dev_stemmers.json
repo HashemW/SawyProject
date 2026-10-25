@@ -1,0 +1,54 @@
+{
+ "bm25 q none": {
+  "bm25:q:none": 1
+ },
+ "bm25 p none": {
+  "bm25:p:none": 1
+ },
+ "bm25 doc none": {
+  "bm25:doc:none": 1
+ },
+ "bm25 q+p none": {
+  "bm25:q:none": 1,
+  "bm25:p:none": 1
+ },
+ "bm25 q light10": {
+  "bm25:q:light10": 1
+ },
+ "bm25 p light10": {
+  "bm25:p:light10": 1
+ },
+ "bm25 doc light10": {
+  "bm25:doc:light10": 1
+ },
+ "bm25 q+p light10": {
+  "bm25:q:light10": 1,
+  "bm25:p:light10": 1
+ },
+ "bm25 q light10-keepwaw": {
+  "bm25:q:light10-keepwaw": 1
+ },
+ "bm25 p light10-keepwaw": {
+  "bm25:p:light10-keepwaw": 1
+ },
+ "bm25 doc light10-keepwaw": {
+  "bm25:doc:light10-keepwaw": 1
+ },
+ "bm25 q+p light10-keepwaw": {
+  "bm25:q:light10-keepwaw": 1,
+  "bm25:p:light10-keepwaw": 1
+ },
+ "bm25 q snowball": {
+  "bm25:q:snowball": 1
+ },
+ "bm25 p snowball": {
+  "bm25:p:snowball": 1
+ },
+ "bm25 doc snowball": {
+  "bm25:doc:snowball": 1
+ },
+ "bm25 q+p snowball": {
+  "bm25:q:snowball": 1,
+  "bm25:p:snowball": 1
+ }
+}

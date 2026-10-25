@@ -2,9 +2,9 @@
 
 A running record of how the fatawa and writings of Dr. Salah Al-Sawy (أ.د. صلاح الصاوي) are being turned into a verbatim, citable answer base for a voice assistant that speaks in his cloned voice. Each step is written up when it is done: what was done, how, how it was checked, the numbers, the problems met and the decisions taken.
 
-Hashem, with Claude. Last updated 2026-10-24.
+Hashem, with Claude. Last updated 2026-10-25.
 
-**Status.** Steps 1 and 2 are complete. The text of all 116 Word files is extracted and checked; one damaged file was repaired first (section 5). It is split into records: the fatwa encyclopedia gives 12,779 distinct fatawa after deduplicating its three editions (section 8), and the Sheikh's own standalone books give 682 more records (section 9). The corpus is 13,461 records. Step 3, the index, is next.
+**Status.** Steps 1 to 3 are complete. The text of all 116 Word files is extracted and checked; one damaged file was repaired first (section 5). It is split into records: the fatwa encyclopedia gives 12,779 distinct fatawa after deduplicating its three editions (section 8), and the Sheikh's own standalone books give 682 more records (section 9). The corpus is 13,461 records. Search over it is built and measured (section 10): on held-out test questions, the right record is among the first 20 candidates for 85% of questions and the first 50 for 95%. Step 4, choosing the answer among the candidates, is next.
 
 ## Contents
 
@@ -17,7 +17,8 @@ Hashem, with Claude. Last updated 2026-10-24.
 7. [Open questions](#7-open-questions)
 8. [Step 2a: one record per fatwa (the encyclopedia)](#8-step-2a-one-record-per-fatwa-the-encyclopedia)
 9. [Step 2b: the standalone books](#9-step-2b-the-standalone-books)
-10. [Next: step 3, the index](#10-next-step-3-the-index)
+10. [Step 3: the search index](#10-step-3-the-search-index)
+11. [Next: step 4, choosing the answer](#11-next-step-4-choosing-the-answer)
 - [Appendix A: reproducing the data](#appendix-a-reproducing-the-data)
 - [Appendix B: repository map](#appendix-b-repository-map)
 - [Appendix C: glossary](#appendix-c-glossary)
@@ -87,7 +88,7 @@ The editions overlap heavily: of 129,957 paragraphs of 20 or more words, 90,273 
 
 ### 2.3 Environment
 
-All processing runs on Hashem's Windows 11 PC: Microsoft Word (needed to read the `.doc` files, see 4.1), Python 3.13 with the standard library only, and PowerShell. The Quran glyph fonts HQPB1–5 are installed there; Othmani1–5, AGA Arabesque and CTraditional Arabic are not. The Google Drive connector only lists files Hashem has opened, so the sources were downloaded through the Drive website in Chrome, as zips (`scripts/extract_zip.py` keeps the Arabic file names intact). The books and everything derived from them stay outside git (`data/` is ignored) and the repository is private.
+All processing runs on Hashem's Windows 11 PC: Microsoft Word (needed to read the `.doc` files, see 4.1), Python 3.13 with the standard library only up to step 2, and PowerShell. The search index (step 3) uses a project venv with PyTorch on the PC's NVIDIA RTX 3070 (8 GB), sentence-transformers and PyStemmer (`requirements.txt`); its embedding models are stored in `data/models/`, on drive D: (drive C: has about 5 GB free). The Quran glyph fonts HQPB1–5 are installed there; Othmani1–5, AGA Arabesque and CTraditional Arabic are not. The Google Drive connector only lists files Hashem has opened, so the sources were downloaded through the Drive website in Chrome, as zips (`scripts/extract_zip.py` keeps the Arabic file names intact). The books and everything derived from them stay outside git (`data/` is ignored) and the repository is private.
 
 ## 3. Step 1a: checking the existing conversion
 
@@ -225,18 +226,21 @@ In the full run with the other 115 books, the acceptance check passes for this b
 | 2026-10-24 | In those cases the bot may add AI-written commentary on the related fatawa: text on screen only, labelled as AI-written, never spoken in his voice, never itself a ruling | the one exception to "the model only chooses"; like machine translation, it is kept visibly apart from his words. Generated text can be steered by a manipulated question, so the label and the separation are what protect it |
 | 2026-10-24 | Front end: the ElevenLabs agent for now (custom LLM pointing at this backend), our own app later | the agent exists; our own app later allows reviewed, cached audio |
 | 2026-10-24 | `التعددية السياسية.doc` is used through the repaired copy | section 5 |
-| 2026-10-24 | Standalone books: his single-author books go in as sections, others' forewords left out; the two books co-authored with Dr. Abdullah al-Muslih (and three files excerpted from one of them) are left out; of `الصارم` (his abridgment of Ibn Taymiyya) and `المواجهة` (a multi-speaker debate) only his own parts go in, and the same rule covers the debate transcript later found in `تهافت العلمانية` and documents appended to his books; the two interviews become question-answer records; five files that name no author are held until the Sheikh's team confirms them | only text that is his may be read in his voice; section 9 has the evidence (author lines, signed prefaces, shared paragraphs) |
+| 2026-10-24 | Standalone books: his single-author books go in as sections, others' forewords left out; the two books co-authored with Dr. Abdullah al-Muslih (and three files excerpted from one of them) are left out; of `الصارم` (his abridgment of Ibn Taymiyya) and `المواجهة` (a multi-speaker debate) only his own parts go in, and the same rule covers the debate transcript later found in `تهافت العلمانية` and documents appended to his books; the two interviews become question-answer records; five files that name no author are held until the Sheikh's team confirms them (changed the same day, below) | only text that is his may be read in his voice; section 9 has the evidence (author lines, signed prefaces, shared paragraphs) |
+| 2026-10-24 | The five files that name no author are left out rather than held | Hashem: there is plenty of his own work without them |
+| 2026-10-24 | `حكم الدين في من تطاول على النبيين` is used in full, including the 19% of it that also appears in `الصارم` | Hashem: what is in his book goes in |
+| 2026-10-24 | Answers reworded between editions need no review; the newest copy stays | both wordings are his. Of the 12 pairs that differ most, 4 changed the ruling between the 2011–17 volumes and the 2020–21 files; keeping the newest gives his later view ([segmentation.md](segmentation.md#limits)) |
 
 ## 7. Open questions
 
 For the Sheikh's team:
-- Are `أصول الإيمان`, `نهائي الطحاوية` (a commentary on al-Tahawi), `وجيزالزكاة`, `من التطبيقات المعاصرة للزكاة` and `قضايا معاصرة` his? They are held until confirmed. Which parts of the two co-authored books are his?
-- 19% of `حكم الدين في من تطاول على النبيين` also appears in `الصارم`, his abridgment of Ibn Taymiyya: are those passages his wording or Ibn Taymiyya's?
+- Which parts of the two co-authored books are his? They are left out until then.
 
 For a person to review (lists in `data/work/records/`):
 - 165 exchanges of the extremism dialogue (`نهائي تطرف`), split by formatting;
-- 26 encyclopedia records held (doubtful Quran quotes, articles, quoted fatawa);
-- 54 fatawa whose answer was reworded between editions (perhaps a changed view).
+- 26 encyclopedia records held (doubtful Quran quotes, articles, quoted fatawa).
+
+Answered on 2026-10-24 (section 6): the five files without an author line, the passages `حكم الدين` shares with `الصارم`, and the 54 reworded answers.
 
 One point to plan for: with the ElevenLabs agent, every answer is synthesized live, so the plan to review each passage's audio before release, Quran pronunciation included (step 5), only fully applies in our own app.
 
@@ -275,7 +279,7 @@ The kept copy follows the decisions: the newest edition; a 2020–21 copy instea
 | Held for review, not used | 26: 12 with a flagged Quran quote, 9 articles (titled texts without «الجواب», some of mixed authorship), 5 not opening with his formula |
 | Distinct fatawa | 12,789 |
 | **Corpus (kept copies)** | **12,779**: 1,869 from 2022–23, 8,732 from 2020–21, 2,178 found only in the volumes |
-| For a person to check | 54 fatawa whose answer was reworded between editions (newest kept; perhaps a changed view); 79 answers given to two different questions (kept as separate fatawa) |
+| Listed | 54 fatawa whose answer was reworded between editions (newest kept; no review needed, section 6); 79 answers given to two different questions (kept as separate fatawa) |
 
 Each corpus record carries its title, question, answer, footnotes, chapter, source, its other copies, the Quran and honorific spans, and a normalized copy of its text for search only. That normalized copy is the last item of the original step 2 plan.
 
@@ -285,15 +289,37 @@ Full write-up: [segmentation.md](segmentation.md#the-standalone-books-segment_bo
 
 **Question.** Which of the 33 books outside the encyclopedia are the Sheikh's own words, and how do they divide into passages the assistant can cite?
 
-**Authorship first.** Before anything was split, each book's title page, signed prefaces and shared paragraphs were read. Two books are co-authored with Dr. Abdullah al-Muslih, and three smaller files turned out to be excerpts of one of them (105 of 107, 68 of 72 and two-thirds of their paragraphs). `الصارم` is his abridgment of Ibn Taymiyya. Two books contain whole debate transcripts with other speakers, two have forewords by others, and several append others' fatawa or council resolutions. Five files name no author. The decisions (section 6) follow from this: 18 of his books go in, two in part, two interviews as question-answer records, and the rest is left out or held. The stretches of others' text inside his books are named in a reviewable table and left out. One finding needed care: in `المواجهة`, the profiles of the secularist debaters state their positions as headlines, which would sound like his rulings if read in his voice. They are left out with the rest of the debate.
+**Authorship first.** Before anything was split, each book's title page, signed prefaces and shared paragraphs were read. Two books are co-authored with Dr. Abdullah al-Muslih, and three smaller files turned out to be excerpts of one of them (105 of 107, 68 of 72 and two-thirds of their paragraphs). `الصارم` is his abridgment of Ibn Taymiyya. Two books contain whole debate transcripts with other speakers, two have forewords by others, and several append others' fatawa or council resolutions. Five files name no author. The decisions (section 6) follow from this: 18 of his books go in, two in part, two interviews as question-answer records, and the rest is left out (the five without an author were first held, then left out). The stretches of others' text inside his books are named in a reviewable table and left out. One finding needed care: in `المواجهة`, the profiles of the secularist debaters state their positions as headlines, which would sound like his rulings if read in his voice. They are left out with the rest of the debate.
 
 **Method.** These books mark headings by formatting (centred, larger, bold) rather than styles, so the extraction now records each paragraph's alignment, bold share and font size. The text is unchanged and the acceptance check still passes. A heading is a short paragraph set apart from the book's own body text, and its level follows its size. Books of questions become question-answer records, like the fatawa: the 108 questions of `تساؤلات أمريكية`, the 82 issues of `المسائل الأساسية` with their «أفكار أولية حول الإجابة», and the 130 «*»/«الجواب:» exchanges of `تكلم الدعاة`. Each step was checked by reading every book's list of sections and parts. That review caught a debate transcript taken for his text, a foreword kept while his own introduction was dropped, an interview's framing taken for questions, contents lines taken for questions, and chapters a file repeats twice; each was fixed and re-checked.
 
 **Result.** 859 records from the books (374 sections, 485 questions and answers), 694 usable. The 165 exchanges of `نهائي تطرف`, a dialogue whose questions are not reliably marked, are held for a person to check. With 12 copies of already-kept records left out, **the corpus is 13,461 records: 12,779 fatawa and 682 book records**, every one the Sheikh's own text with its source.
 
-## 10. Next: step 3, the index
+## 10. Step 3: the search index
 
-Search over the corpus: Arabic-aware keyword search plus multilingual embeddings, over title and question and over the answer, using each record's normalized search copy. Long book sections (median 778 words, some over 5,000) will be indexed in passages. Before that, the review lists (section 7) can go to the Sheikh's team.
+Full write-up: [retrieval.md](retrieval.md).
+
+**Question.** Given a question in the user's own words, in any language or dialect, which records may answer it? Search only proposes candidates; step 4 decides whether one of them answers, and the answer is always a record's own text. So the measure that matters is whether the right record is among the first 20 to 50 candidates.
+
+**Method.** Each record is searched through its title and question, and through its answer cut into 21,599 passages of up to 220 words. A passage is a span of the answer, so the one that matched can be quoted exactly. Two kinds of search were compared: keyword search (BM25) over normalized Arabic words with four ways of stemming them, and three multilingual embedding models that run locally on Hashem's GPU, so no text leaves the machine and nothing is billed. Rankings are combined by reciprocal rank fusion.
+
+**Test set.** None existed (the Golden Dataset has 4 questions), so one was made: 150 records drawn at random (books oversampled), and for each, three writers who never saw the search wrote what an ordinary person would ask. That is a full question (a quarter of them in Egyptian, Levantine, Gulf or Maghrebi dialect), a short search-box form and an English question: 450 questions (`eval/retrieval.jsonl`). 100 records were used for every choice; 50 were held out and run once at the end. Only the record a question was written for counts as found, so the scores are a lower bound.
+
+**Findings.**
+- Stemming helps keyword search (MRR +0.085 over none); Snowball's Arabic stemmer beats light10, the standard light stemmer (+0.041, 95% interval +0.004 to +0.079).
+- Embeddings find far more than keywords: on full Arabic questions the record comes first 68% of the time (keywords: 44%), and English questions find the Arabic records nearly as well. Of the three models, bge-m3 (MIT licence) and e5-large-instruct (MIT) are close and complementary; Qwen3-Embedding-0.6B was weaker and 13 times slower here, and was dropped.
+- Matching the user's question to the asker's question (title and question) carries most of the signal; the answers' passages add recall, and are what finds book sections.
+- Fusing with equal weights and the usual constant (k = 60) raised recall but pushed good first places down. The chosen search fuses both models over title and question (weight 1) and over passages (0.5) with keyword search over title and question (0.5), at k = 10.
+
+**Result.** On the held-out test, averaged over the three kinds of question: the record comes first for 51% of questions, is in the first 10 for 83%, the first 20 for 85% and the first 50 for 95% (MRR 0.624). On dev: 54%, 86%, 92%, 97% (MRR 0.661). Fatawa are found best (first 20: 89–98%). Book sections, whose headings say little, are the weak point. All four Golden Dataset questions return their fatwa first. Of the 46 questions (of 450) whose record was not in the first 20, 26 had another fatwa on the same question first and 18 related records; 2 found nothing relevant. A search takes 76 ms on the GPU and 384 ms on the CPU.
+
+**Problems met.** An embedding build stalled when its progress bars went through PowerShell's `*>` redirection, and ran normally without it. Six interview records had empty titles (their question began with an empty line); fixed in `segment_books.py`, and only those titles changed. In PowerShell, an empty `$env:` value removes the variable, so a run meant for the CPU used the GPU. On the CPU, transformers kept the models in half precision, which is slow there, so `load_model` now uses float32. An interrupted build lost its record of finished parts, so the index metadata is now written after each part.
+
+**Decision** (2026-10-25, from the measurements): the search described above is the default (`search.DEFAULT`); `build_index.py` builds exactly its parts.
+
+## 11. Next: step 4, choosing the answer
+
+Take the first 30 to 50 candidates (95–97% contain the record), rerank them with a multilingual cross-encoder, and have a strict LLM check say which record, if any, answers the question; otherwise the fixed "no fatwa found" message. For a long book section, the passage that matched is the natural unit to quote verbatim. The review lists (section 7) can go to the Sheikh's team in the meantime.
 
 ## Appendix A: reproducing the data
 
@@ -308,9 +334,11 @@ python -I -X utf8 scripts\check_extract.py --word data\work\word --extract data\
 python -I -X utf8 scripts\segment.py --extract data\work\extract --out data\work\records
 python -I -X utf8 scripts\segment_books.py --extract data\work\extract --out data\work\records
 python -I -X utf8 scripts\dedupe.py --records data\work\records
+.venv\Scripts\python -I -X utf8 scripts\build_index.py --records data\work\records --out data\work\index
+.venv\Scripts\python -I -X utf8 scripts\eval_retrieval.py --index data\work\index --queries eval\retrieval.jsonl --split test --configs eval\configs\test_final.json
 ```
 
-The first export records the damaged file as an error; the second replaces that entry with the repaired copy. The corpus is `data/work/records/corpus.jsonl`. The `clean_txt` check (section 3) is reproduced with `verify_txt.py` and `overlap.py` as shown in [data-verification.md](data-verification.md).
+The first export records the damaged file as an error; the second replaces that entry with the repaired copy. The corpus is `data/work/records/corpus.jsonl`. `build_index.py` builds the parts the chosen search uses; for the whole comparison of section 10, add `--stemmers none,light10,light10-keepwaw,snowball --models bge-m3,e5-large-instruct` and run `eval_retrieval.py --split dev` with each file in `eval/configs/`. The test questions are in git; `sample_targets.py` (which records) and `merge_queries.py` (joining the writers' files) show how they were made. The `clean_txt` check (section 3) is reproduced with `verify_txt.py` and `overlap.py` as shown in [data-verification.md](data-verification.md).
 
 ## Appendix B: repository map
 
@@ -320,7 +348,7 @@ The first export records the damaged file as an error; the second replaces that 
 | `docs/report.md` | this report |
 | `docs/data-verification.md` | step 1a in full |
 | `docs/extraction.md` | step 1b–1c in full |
-| `docs/segmentation.md` | step 2a in full |
+| `docs/segmentation.md` | step 2 in full |
 | `scripts/word_export.ps1` | reads every source through Word: plain text, footnotes, text boxes, XML |
 | `scripts/verify_txt.py` | checks a text conversion (here `clean_txt`) against Word's reading |
 | `scripts/overlap.py` | paragraph overlap between sources |
@@ -333,6 +361,14 @@ The first export records the damaged file as an error; the second replaces that 
 | `scripts/segment.py` | the encyclopedia → one record per fatwa, non-fatwa parts, review flags, coverage check |
 | `scripts/segment_books.py` | the standalone books → sections and question-answer records, per the authorship table, with others' text left out |
 | `scripts/dedupe.py` | copies of each fatwa across editions → the corpus, one kept copy each, plus the book records, each with a search copy of its text |
+| `scripts/build_index.py` | the corpus → the search index: passages, keyword-search matrices, embeddings |
+| `scripts/search.py` | search over the index (text normalization, stemming, BM25, embeddings, fusion); used by the evaluation and, later, the answer service |
+| `scripts/eval_retrieval.py` | measures search against the test questions |
+| `scripts/sample_targets.py`, `scripts/merge_queries.py` | how the test questions were made: the records picked, the writers' files joined |
+| `eval/retrieval.jsonl` | the 450 test questions (150 records, dev and test splits) |
+| `eval/configs/` | the search configurations compared in each round |
+| `docs/retrieval.md` | step 3 in full |
+| `requirements.txt` | the Python packages of step 3 |
 
 ## Appendix C: glossary
 
@@ -343,5 +379,10 @@ The first export records the damaged file as an error; the second replaces that 
 - **Honorific:** a formula after a name (صلى الله عليه وسلم, رضي الله عنه, …), often drawn as one glyph.
 - **CFB (compound file):** the container format of `.doc` files, a small file system of streams.
 - **Piece table:** the part of a `.doc` file that says where the text is stored.
+- **BM25:** the standard keyword-search score: a record scores higher the more of the question's rarer words it contains, with diminishing returns for repeats and a correction for length.
+- **Stemming:** reducing a word to a common form, so that «بالزكاة» and «الزكاة» match; a light stemmer only strips prefixes and suffixes.
+- **Embedding:** a vector that a neural model computes for a text, close to the vectors of texts with similar meaning, in any language the model knows.
+- **Reciprocal rank fusion (RRF):** combining rankings by adding w/(k + rank) for each list a record appears in.
+- **R@k, MRR:** the share of questions whose record is among the first k results; the mean of 1/rank of that record.
 - **FKP and bin table:** a `.doc` stores character formatting in 512-byte pages (FKPs); the bin table maps each stretch of text to its page.
 - **Office file validation:** Office's check of a binary file's structure before opening it; files that fail are not opened.
