@@ -41,7 +41,7 @@ Three multilingual embedding models were compared, chosen for strong multilingua
 | `intfloat/multilingual-e5-large-instruct` | 560M | MIT | `274baa43` |
 | `Qwen/Qwen3-Embedding-0.6B` | 596M | Apache-2.0 | `97b0c614` |
 
-They run locally, so the Sheikh's texts are not sent to any service and nothing is billed. The models are stored under `data/models` (gitignored, 4.3 GB) and pinned to the revisions above.
+They run locally, so the Sheikh's texts are not sent to any service and nothing is billed. The models (4.3 GB) are pinned to the revisions above and read from the Hugging Face cache: `HF_HOME` if set (on Hashem's PC user-wide, `D:\Caches\huggingface`), else `data/models` (gitignored).
 
 **Text.** Diacritics, tatweel, invisible marks and footnote numbers are removed, but letters stay as written: the models learned standard spelling. Each passage is preceded by its record's title, so that a passage that never names its subject («فإن ذلك جائز بشرط…») is still embedded with it. Questions for e5 and Qwen3 get the instruction those models are trained with («Given a question about an Islamic ruling, retrieve the fatwa or passage that answers it»); bge-m3 takes none.
 
@@ -159,6 +159,10 @@ On Hashem's PC, building takes about a minute per stemmer for keyword search (al
 - Book sections are found less reliably than fatawa.
 - Search always returns candidates; deciding that none of them answers is step 4's job.
 
+## Rebuilt 2026-10-25
+
+12 records changed when in-progress 2022–23 copies that revise their 2020–21 copy were kept instead of it ([segmentation.md](segmentation.md#limits)). The index was rebuilt: 21,605 passages (6 more). The test scores of every configuration in `test_final.json` and the dev scores of the chosen search are unchanged.
+
 ## Next: step 4
 
-Take the first 30–50 candidates (R@50 is 0.95–0.97), rerank them with a multilingual cross-encoder, and let a strict LLM check decide which record answers the question, if any. For a long book section, the passage that matched is the natural unit to quote verbatim.
+Done: [selection.md](selection.md). The first 50 candidates are reranked by a cross-encoder fused with the search order, and a strict model check over the first 10 decides which record, if any, settles the question.

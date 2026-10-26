@@ -2,7 +2,7 @@
 
 A voice chatbot that answers people's questions **only** with the fatawa of Dr. Salah Al-Sawy (أ.د. صلاح الصاوي), spoken in his own voice cloned in ElevenLabs. The Sheikh asked for this project.
 
-**Status:** the voice is cloned ("sawy v2"). An ElevenLabs agent prototype answers using ElevenLabs' built-in knowledge-base RAG, with an LLM writing the answers (Gemini Flash in the Nov 2025 notes). Those answers are generated rather than quoted, and testing was weak. This repo builds our own retrieval pipeline (the "professional RAG" route in the team notes) and keeps ElevenLabs for the voice. The text of all 116 books has been extracted and checked (step 1 below; one damaged file was repaired first) and split into records (step 2): a corpus of 13,461 records of the Sheikh's own text. Search over it is built and measured (step 3): the right record is among the first 20 candidates for 85% of held-out test questions and the first 50 for 95%. Choosing the answer (step 4) is next. Every step is written up in `docs/report.md`.
+**Status:** the voice is cloned ("sawy v2"). An ElevenLabs agent prototype answers using ElevenLabs' built-in knowledge-base RAG, with an LLM writing the answers (Gemini Flash in the Nov 2025 notes). Those answers are generated rather than quoted, and testing was weak. This repo builds our own retrieval pipeline (the "professional RAG" route in the team notes) and keeps ElevenLabs for the voice. The text of all 116 books has been extracted and checked (step 1 below; one damaged file was repaired first) and split into records (step 2): a corpus of 13,461 records of the Sheikh's own text. Search over it is built and measured (step 3): the right record is among the first 20 candidates for 85% of held-out test questions and the first 50 for 95%. Choosing the answer (step 4) is built and measured too: a local reranker plus a strict check by Claude Opus 5.5 that only chooses. On held-out questions, 93% of answerable ones get a fatwa that settles them, 97% of the fatawa it chooses do settle the question, and the rest are near fits. Voice (step 5) is next. Every step is written up in `docs/report.md`.
 
 ## Core rule: only the Sheikh's words
 
@@ -40,9 +40,9 @@ What's inside the Word sources:
 - **Honorifics are glyphs too.** AGA Arabesque symbols (`U` عز وجل, `r`/`e` صلى الله عليه وسلم, `t` رضي الله عنه …) and the font `CTraditional Arabic`, which draws honorifics on ordinary characters (`ب` رضي الله عنهما, `ل` رضي الله عنها, `:` رحمه الله …). Read as plain text they become stray letters.
 - Some runs carry a symbol font (AGA Arabesque) in the Latin-font slot while containing ordinary Arabic; any filter on font names will drop real text. `AF_Najed`, `AL-Mateen` and the like are ordinary display fonts.
 
-Reading the sources: `scripts/word_export.ps1` drives Word (read-only, macros off, never saves; Word's SaveAs hangs on these files) and writes main text, footnotes and the flat XML. `scripts/extract_text.py` turns the XML into the text we use (`data/work/extract/`), and `scripts/check_extract.py` is its acceptance test against Word's own text. `scripts/segment.py` and `scripts/dedupe.py` turn that into records (`data/work/records/`). `scripts/build_index.py` builds the search index (`data/work/index/`), `scripts/search.py` searches it, and `scripts/eval_retrieval.py` measures it against the test questions in `eval/retrieval.jsonl`. `scripts/verify_txt.py` was used to check `clean_txt`.
+Reading the sources: `scripts/word_export.ps1` drives Word (read-only, macros off, never saves; Word's SaveAs hangs on these files) and writes main text, footnotes and the flat XML. `scripts/extract_text.py` turns the XML into the text we use (`data/work/extract/`), and `scripts/check_extract.py` is its acceptance test against Word's own text. `scripts/segment.py` and `scripts/dedupe.py` turn that into records (`data/work/records/`). `scripts/build_index.py` builds the search index (`data/work/index/`), `scripts/search.py` searches it, and `scripts/eval_retrieval.py` measures it against the test questions in `eval/retrieval.jsonl`. `scripts/rerank.py` reranks candidates, `scripts/answer.py` is the answer service (search → rerank → checker → verbatim answer or fixed message), and `scripts/eval_rerank.py` and `scripts/eval_answer.py` measure them. The step 4 test questions are in `eval/answer.jsonl` (`scripts/make_answer_eval.py`), with the judged verdicts in `eval/judgments.jsonl`. `scripts/verify_txt.py` was used to check `clean_txt`.
 
-Everything before the index uses only the standard library. The index scripts need the project venv (`.venv`, gitignored; setup in `requirements.txt`: PyTorch with CUDA for the RTX 3070, sentence-transformers, PyStemmer): run them with `.venv\Scripts\python -I -X utf8`. The embedding models (4.3 GB) live in `data/models/`, which `search.py` sets as `HF_HOME`.
+Everything before the index uses only the standard library. The index and answer scripts need the project venv (`.venv`, gitignored; setup in `requirements.txt`: PyTorch with CUDA for the RTX 3070, sentence-transformers, PyStemmer, anthropic): run them with `.venv\Scripts\python -I -X utf8`. The embedding and reranker models (about 6.6 GB, pinned revisions) are read from the Hugging Face cache: `HF_HOME` if it is set (on Hashem's PC it is, user-wide: `D:\Caches\huggingface`, which holds all of them), else `data/models/`, which `search.py` sets. The checker calls the Anthropic API and is billed: the key comes from the environment or `.env` (`answer.load_env`), and evaluation runs go through the half-price Batches API (`eval_answer.py`). Ask before any billed run and give an estimate (`eval_answer.py tokens` counts tokens for free).
 
 ## Planned pipeline
 
@@ -55,7 +55,14 @@ Everything before the index uses only the standard library. The index scripts ne
    - Check: every block ends up in exactly one record or in a listed non-fatwa part; nothing is dropped silently.
    - Then a separate normalized copy for search only: strip tashkeel, tatweel and `()`, and unify ا/أ/إ/آ, ى/ي, ة/ه.
 3. **Index** (done, `docs/retrieval.md`): `scripts/build_index.py` → `data/work/index/`, searched by `scripts/search.py`. Each record is searched by its title and question and by its answer in passages (≤ 220 words; spans of the answer, so the match can be quoted verbatim). Chosen on measurements: reciprocal rank fusion (k = 10) of bge-m3 and multilingual-e5-large-instruct embeddings over title+question (weight 1) and passages (0.5), plus BM25 with Snowball stems over title+question (0.5, Arabic questions only). Models run locally (no API, no cost). Test set: `eval/retrieval.jsonl`, 450 questions written for 150 random records (dialects, short forms, English), measured by `scripts/eval_retrieval.py`; held-out test: R@20 0.85, R@50 0.95, MRR 0.624, lower bounds, since another fatwa on the same issue counts as a miss. Book sections are found less reliably than fatawa. Search takes 76 ms on the GPU and 384 ms on the CPU.
-4. **Select**: take the top 30–50 candidates (`search.Index.search`), rerank, then run a strict LLM check of whether a candidate answers the question. A match returns the verbatim fatwa with its citation; no match returns the abstain message. For a long book section, quote the passage that matched (each hit carries it). Translating a non-Arabic question into Arabic first may let keyword search help it (untested).
+4. **Select** (done, `docs/selection.md`): `scripts/answer.py`.
+   - The first 50 search hits are reranked by `BAAI/bge-reranker-v2-m3` (local, Apache-2.0), fused with the search order (RRF k = 10): R@10 0.91 on dev and test, against 0.87 and 0.81 for search alone.
+   - The first 10 go to the checker, Claude Opus 5.5 at effort `medium`, with a fixed JSON schema. Its decision is `answer` (a candidate number), `refer` (one's own case, no fatwa matches every fact), `chat` or `none`, plus up to three related candidates and a one-line reason for the log.
+   - The code validates the verdict. The person gets the record's own text (a book section: the matched passage) with its citation, or a fixed message (`answer.MESSAGES`, drafts for the team).
+   - Measured on the 450 step 3 questions plus 205 new ones that must not get a fatwa (near misses, unanswered, personal cases, off-topic, chat, injections). Choices other than a question's target were judged by blind model instances (`eval/judgments.jsonl`).
+   - Held-out test: 140 of 150 answerable questions settled, 9 declined, 1 wrong; 5 wrong choices in 220 questions, 97% of chosen fatawa right (dev 99.1%).
+   - Sonnet 5.5 and Haiku 5.5 made 19 and 10 wrong choices where Opus made 3 (dev).
+   - About $0.058 and 3.7 s per live question.
 5. **Voice**: ElevenLabs TTS ("sawy v2") on the verbatim text, cached by text hash so each passage is paid for once and can be reviewed before release. Quran quotations need special handling: mispronouncing Quran in his voice is unacceptable.
 6. **Evaluate** with the Golden Dataset, paraphrases of existing questions (the source fatwa should come back), questions that must get the abstain message, and injection attempts. Target: zero non-Sheikh text in answers.
 
@@ -68,7 +75,12 @@ Front end (decided): the ElevenLabs agent for now, for voice in and out, pointed
 - **Quran text** (2026-10-24): quotes are written with Tanzil's Uthmani text of exactly the quoted words (Hashem accepted Tanzil's terms). Where the document's own quote is garbled or misses a word, the cited verses' correct text is used and the quote is flagged for review; it is never printed as a misquote.
 - **Flagged quotes** (2026-10-24): the fatawa containing any of the 19 quotes that need a decision (1 unreadable, 6 with undecided vowels, 12 wrong in the source) are left out of the records entirely. The 109 repaired quotes (stray characters standing in for glyphs, words matched letter for letter) stay.
 - **Scope** (2026-10-24): his fatawa and his treatises go in. Clean data first: the books are segmented and checked before anything is indexed. The video fatawa are left out for now: their Whisper transcripts are not trusted.
-- **Duplicates** (2026-10-24): keep the newest edition of each fatwa. Where the newest copy is in a 2022–23 file marked `تحت الإجراء` (in progress; 9 files: chapters 04, 05, 07, 08, 10, 14, 15, 17, 21), keep the 2020–21 copy instead. Fatawa that exist only in a `تحت الإجراء` file are kept: the Sheikh's team gave us these files. Answers reworded between editions (54) need no review: both wordings are his, and keeping the newest gives his later view where it changed.
+- **Duplicates** (2026-10-24, amended 2026-10-25): keep the newest edition of each fatwa.
+  - Where the newest copy is in a 2022–23 file marked `تحت الإجراء` (in progress; 9 files: chapters 04, 05, 07, 08, 10, 14, 15, 17, 21), keep the 2020–21 copy instead, unless the in-progress copy revises it (answers sharing under 60% of their 5-word sequences). Then the newer copy is kept (Hashem, 2026-10-25: 12 fatawa).
+  - The 13th revised copy, N05-0195, is passed over (`dedupe.DRAFT_ERRORS`): its abridgment says «والاحتياط تركها» where every other copy says «والاحتياط قضاؤها», reversing the ruling.
+  - Fatawa that exist only in a `تحت الإجراء` file are kept: the Sheikh's team gave us these files.
+  - Answers reworded between editions (54) need no review: both wordings are his, and keeping the newest gives his later view where it changed.
+- **Checker** (2026-10-25): Hashem left the choice of model to us. Claude Opus 5.5 (Anthropic API), effort `medium`, the revised prompt in `answer.py`; it had the fewest wrong choices on dev. The evaluation was billed to the API key on Hashem's PC (approved up to about $60; about $41 spent).
 - **Specific cases** (2026-10-24): questions about a person's own case (a particular divorce, inheritance shares, …) go to a person, unless a fatwa matches every fact of the case, which is almost never. The bot may still offer related fatawa from his books, verbatim and cited, but never a ruling that is not in his books. It may add AI-written commentary on them as labelled on-screen text, never in his voice (the exception under the core rule).
 - **Front end** (2026-10-24): the ElevenLabs agent for now; our own app later.
 - **Standalone books, authorship** (2026-10-24): only text that is the Sheikh's own goes in.
@@ -84,16 +96,24 @@ Front end (decided): the ElevenLabs agent for now, for voice in and out, pointed
 
 - For the Sheikh's team: which parts of the two co-authored books are his (they are left out until then)?
 - For a reviewer: the 165 held records of the extremism dialogue (`نهائي تطرف`), the 26 held encyclopedia records.
-- For Hashem: which LLM does step 4's final check use, and whose API key and billing? Where an in-progress 2022–23 copy gave way to the 2020–21 one, 13 copies differ noticeably (`docs/segmentation.md`, Limits): use the newer copy in those?
+- For Hashem:
+  - Whose API key and billing serve the live assistant (about $0.058 per question)?
+  - When no fatwa settles a question but related ones exist, should the assistant offer them as text?
+  - Should a person review a sample of the judged verdicts (43 marked unsure in `eval/judgments.jsonl`)?
+- For the Sheikh's team: the wording of the fixed messages (`answer.MESSAGES`).
 
-## Next steps (as of 2026-10-25)
+## Next steps (as of 2026-10-25, evening)
 
-Steps 1–3 are done and pushed; nothing of step 4 exists yet.
+Steps 1–4 are done (step 4: `docs/selection.md`).
 
-1. **Ask Hashem first** which LLM step 4 uses and whose key and billing (the team's earlier tests used Gemini 2.0 Flash and GPT-5; links below). The key goes in `.env`, never in code or commits.
-2. **Step 4, choosing the answer** (`docs/report.md` section 11). Take the first 30–50 hits of `search.Index.search`; 95–97% of the time the right record is among them. Rerank them with a local multilingual cross-encoder (candidate: `BAAI/bge-reranker-v2-m3`). Then run the strict LLM check, whose only output is a record ID or "none" (core rule 4). The answer is that record's verbatim text with its citation, or the fixed "no fatwa found" message. For a long book section, quote the passage that matched (each hit carries it). Questions about the asker's own case go to a person (Decisions). Measure it on `eval/retrieval.jsonl`, plus questions that must get the abstain message, before building anything around it.
-3. Possible improvement to search: book sections are found less reliably than fatawa, because their only "question" is a heading.
-4. Then step 5 (voice; through the agent, a plan for Quran pronunciation) and step 6 (evaluation).
+1. **Open questions for Hashem** (above): the key and billing for the live assistant, offering related fatawa when none settles the question, a person's review of a sample of verdicts.
+2. **Step 5, voice**: ElevenLabs TTS ("sawy v2") on the chosen text. Ask before anything billed. Quran quotations need special handling: through the agent every answer is synthesized live, so the agent phase needs its own plan for Quran pronunciation.
+3. **The live service** behind the ElevenLabs agent (custom LLM): `answer.Answerer` with the models loaded once (34 s), about 3.7 s per question. The three local models need about 3.3 GB of GPU memory, which fits on Hashem's PC only while other programs leave room. With the Unreal Editor open, a question took minutes, so the service needs a GPU of its own.
+4. Possible improvements:
+   - real questions as a test (the 1,308 YouTube fatwa titles: the `metadata` sheet is readable through the Drive connector);
+   - book sections, found and settled least well;
+   - personal cases the checker still sometimes answers;
+   - a second, single-candidate check before an answer is read out (untested; measure it against a human sample, not the model judges, which share its blind spots).
 
 ## Links
 

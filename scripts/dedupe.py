@@ -21,10 +21,12 @@ answer given to different questions.
 
 Which copy is kept (decisions 2026-10-24): the newest edition, 2022-23 chapter files over
 2020-21 chapter files over the 2011-2017 volumes (later volume first). A copy in a 2022-23 file
-marked «تحت الإجراء» gives way to a 2020-21 copy if there is one; otherwise it is kept. Within one
-file the first copy is kept (the editors marked later ones «مكرر»). A held copy (flagged Quran
-quote, quoted fatwa, article) is passed over for the next copy in that order; a group with no
-usable copy stays out.
+marked «تحت الإجراء» gives way to a 2020-21 copy if there is one, unless it revises that copy
+(answers sharing under 60% of their 5-word sequences: extended, abridged or rewritten), where the
+newer wording is kept (decision 2026-10-25); with no 2020-21 copy it is kept. Within one file the
+first copy is kept (the editors marked later ones «مكرر»). A held copy (flagged Quran quote,
+quoted fatwa, article), or one with an error found by reading (DRAFT_ERRORS), is passed over for
+the next copy in that order; a group with no usable copy stays out.
 """
 import argparse
 import collections
@@ -36,6 +38,14 @@ import unicodedata
 DIACRITICS = re.compile("[" + "".join(map(chr, [*range(0x610, 0x61B), *range(0x64B, 0x660), 0x670, *range(0x6D6, 0x6EE), 0x640])) + "]")
 FOLD = str.maketrans({"أ": "ا", "إ": "ا", "آ": "ا", "ٱ": "ا", "ى": "ي", "ة": "ه", "ؤ": "و", "ئ": "ي"})
 RANK = {"2022-23 chapter": 3, "2020-21 chapter": 2, "2011-2017 volume": 1}
+# An in-progress copy whose answer shares less than this with the 2020-21 copy revises it.
+REVISED = 0.6
+# Usable copies that are never kept: drafts that contradict the fatwa's other copies (found by
+# reading the 13 revised in-progress copies, 2026-10-25).
+DRAFT_ERRORS = {
+    "N05-0195": "its abridgment says «والاحتياط تركها» (leave the missed prayers) where the full copies "
+                "say «والاحتياط قضاؤها» (make them up), against its own reason (by analogy with the one who forgot)",
+}
 
 
 def search_text(s):
@@ -81,9 +91,15 @@ def order_key(r):
     return (-RANK[r["edition"]], -volume, r["source"], pos)
 
 
+def answer_overlap(a, b):
+    """Jaccard of the two answers' 5-word sequences."""
+    sa, sb = shingles(words(a["answer"])), shingles(words(b["answer"]))
+    return len(sa & sb) / len(sa | sb)
+
+
 def choose(members):
     """The kept copy of a group, by the rule above; None if no copy is usable."""
-    ok = [r for r in members if r["status"] == "ok"]
+    ok = [r for r in members if r["status"] == "ok" and r["id"] not in DRAFT_ERRORS]
     if not ok:
         return None, "no usable copy"
     ok.sort(key=order_key)
@@ -93,11 +109,15 @@ def choose(members):
         older = [r for r in ok if r["edition"] == "2020-21 chapter"]
         if finished:
             return finished[0], "newest finished copy"
+        if older and answer_overlap(first, older[0]) < REVISED:
+            return first, "in-progress copy kept: it revises the 2020-21 copy"
         if older:
             return older[0], "2020-21 copy over an in-progress 2022-23 copy"
         return first, "in-progress copy kept: no 2020-21 copy"
     why = "newest copy"
-    if any(r["status"] != "ok" and order_key(r) < order_key(first) for r in members):
+    if any(r["id"] in DRAFT_ERRORS for r in members):
+        why = "newest copy without a known error"
+    elif any(r["status"] != "ok" and order_key(r) < order_key(first) for r in members):
         why = "newest usable copy (a newer copy is held)"
     return first, why
 
@@ -266,6 +286,11 @@ def main():
     lines += [f"- {a} ~ {b} «{title[a][:70]}» (answer overlap {x})" for a, b, x in same_question]
     lines += ["", f"## Same question, answer extended in a later copy ({len(extended)}): one fatwa, newest kept", ""]
     lines += [f"- {a} ~ {b} «{title[a][:70]}»" for a, b, x in extended]
+    revised = [g for g in glines if g["why"] == "in-progress copy kept: it revises the 2020-21 copy"]
+    lines += ["", f"## In-progress copies that revise the 2020-21 copy ({len(revised)}): the newer wording kept (decision 2026-10-25)", ""]
+    lines += [f"- {g['kept']} «{title[g['kept']][:70]}» over " + ", ".join(m["id"] for m in g["members"] if m["id"] != g["kept"]) for g in revised]
+    lines += ["", f"## Copies passed over for an error found by reading ({len(DRAFT_ERRORS)})", ""]
+    lines += [f"- {rid} «{title[rid][:70]}»: {why}" for rid, why in DRAFT_ERRORS.items()]
     lines += ["", f"## Book records that are copies of a kept record ({len(book_copies)}): left out", ""]
     lines += [f"- {a} «{t[:70]}» = {b}" for a, t, b in book_copies]
     lines += ["", f"## Book records whose text is mostly in kept records too ({len(book_overlap)}): kept", ""]

@@ -4,7 +4,13 @@ A running record of how the fatawa and writings of Dr. Salah Al-Sawy (أ.د. ص�
 
 Hashem, with Claude. Last updated 2026-10-25.
 
-**Status.** Steps 1 to 3 are complete. The text of all 116 Word files is extracted and checked; one damaged file was repaired first (section 5). It is split into records: the fatwa encyclopedia gives 12,779 distinct fatawa after deduplicating its three editions (section 8), and the Sheikh's own standalone books give 682 more records (section 9). The corpus is 13,461 records. Search over it is built and measured (section 10): on held-out test questions, the right record is among the first 20 candidates for 85% of questions and the first 50 for 95%. Step 4, choosing the answer among the candidates, is next.
+**Status.** Steps 1 to 4 are complete.
+- **Text (sections 3–5).** All 116 Word files are extracted and checked; one damaged file was repaired first.
+- **Records (sections 8–9).** The fatwa encyclopedia gives 12,779 distinct fatawa after deduplicating its three editions, and the Sheikh's own standalone books give 682 more: 13,461 records.
+- **Search (section 10).** On held-out test questions, the right record is among the first 20 candidates for 85% of questions and the first 50 for 95%.
+- **Choosing the answer (section 11).** A local reranker and a strict check by a language model (Claude Opus 5.5) choose which record settles a question, or none. On held-out questions, 93% of answerable questions get a fatwa that settles them. Of all the fatawa it chose, 97% settle the question (99% on dev). Questions that must not get a fatwa get none, a referral to a scholar, or the greeting reply. Its 5 wrong choices in 220 test questions are all near fits.
+
+Voice (step 5) is next.
 
 ## Contents
 
@@ -18,7 +24,8 @@ Hashem, with Claude. Last updated 2026-10-25.
 8. [Step 2a: one record per fatwa (the encyclopedia)](#8-step-2a-one-record-per-fatwa-the-encyclopedia)
 9. [Step 2b: the standalone books](#9-step-2b-the-standalone-books)
 10. [Step 3: the search index](#10-step-3-the-search-index)
-11. [Next: step 4, choosing the answer](#11-next-step-4-choosing-the-answer)
+11. [Step 4: choosing the answer](#11-step-4-choosing-the-answer)
+12. [Next](#12-next)
 - [Appendix A: reproducing the data](#appendix-a-reproducing-the-data)
 - [Appendix B: repository map](#appendix-b-repository-map)
 - [Appendix C: glossary](#appendix-c-glossary)
@@ -54,8 +61,8 @@ The work replaces the generated answers with retrieval of verbatim passages and 
 |---|---|---|
 | 1 | Ingest: get every word of the sources out exactly, including footnotes, tables, Quran quotes and honorifics | done (sections 3–5) |
 | 2 | Segment: one record per fatwa (title, question, answer, notes, source) and one per treatise section; dedupe across editions | done (sections 8–9) |
-| 3 | Index: Arabic-aware keyword search plus multilingual embeddings, over questions and answers | |
-| 4 | Select: rerank candidates, then a strict check that a candidate answers the question; otherwise the fixed "not found" message | |
+| 3 | Index: Arabic-aware keyword search plus multilingual embeddings, over questions and answers | done (section 10) |
+| 4 | Select: rerank candidates, then a strict check that a candidate answers the question; otherwise the fixed "not found" message | done (section 11) |
 | 5 | Voice: TTS of the verbatim text, cached and reviewed per passage; Quran quotes need special care | |
 | 6 | Evaluate: the team's Golden Dataset, paraphrased questions, questions that must be refused, injection attempts. Target: no non-Sheikh text in any answer | |
 
@@ -88,7 +95,7 @@ The editions overlap heavily: of 129,957 paragraphs of 20 or more words, 90,273 
 
 ### 2.3 Environment
 
-All processing runs on Hashem's Windows 11 PC: Microsoft Word (needed to read the `.doc` files, see 4.1), Python 3.13 with the standard library only up to step 2, and PowerShell. The search index (step 3) uses a project venv with PyTorch on the PC's NVIDIA RTX 3070 (8 GB), sentence-transformers and PyStemmer (`requirements.txt`); its embedding models are stored in `data/models/`, on drive D: (drive C: has about 5 GB free). The Quran glyph fonts HQPB1–5 are installed there; Othmani1–5, AGA Arabesque and CTraditional Arabic are not. The Google Drive connector only lists files Hashem has opened, so the sources were downloaded through the Drive website in Chrome, as zips (`scripts/extract_zip.py` keeps the Arabic file names intact). The books and everything derived from them stay outside git (`data/` is ignored) and the repository is private.
+All processing runs on Hashem's Windows 11 PC: Microsoft Word (needed to read the `.doc` files, see 4.1), Python 3.13 with the standard library only up to step 2, and PowerShell. The search index (step 3) uses a project venv with PyTorch on the PC's NVIDIA RTX 3070 (8 GB), sentence-transformers and PyStemmer (`requirements.txt`); its embedding models are stored in `data/models/`, on drive D: (drive C: has about 5 GB free). Step 4 adds a reranker model (2.3 GB) and the Anthropic SDK. The models are read from the Hugging Face cache named by `HF_HOME`, which on Hashem's PC is set user-wide to `D:\Caches\huggingface`; `data/models/` is used only when it is unset. The checker runs on Anthropic's API with the key from the environment or `.env`. The Quran glyph fonts HQPB1–5 are installed there; Othmani1–5, AGA Arabesque and CTraditional Arabic are not. The Google Drive connector only lists files Hashem has opened, so the sources were downloaded through the Drive website in Chrome, as zips (`scripts/extract_zip.py` keeps the Arabic file names intact). The books and everything derived from them stay outside git (`data/` is ignored) and the repository is private.
 
 ## 3. Step 1a: checking the existing conversion
 
@@ -230,6 +237,10 @@ In the full run with the other 115 books, the acceptance check passes for this b
 | 2026-10-24 | The five files that name no author are left out rather than held | Hashem: there is plenty of his own work without them |
 | 2026-10-24 | `حكم الدين في من تطاول على النبيين` is used in full, including the 19% of it that also appears in `الصارم` | Hashem: what is in his book goes in |
 | 2026-10-24 | Answers reworded between editions need no review; the newest copy stays | both wordings are his. Of the 12 pairs that differ most, 4 changed the ruling between the 2011–17 volumes and the 2020–21 files; keeping the newest gives his later view ([segmentation.md](segmentation.md#limits)) |
+| 2026-10-25 | Where an in-progress 2022–23 copy revises its 2020–21 copy (answers sharing under 60% of their 5-word sequences), the newer copy is kept: 12 of the 13 such fatawa | Hashem: take the newer copy. All 13 were read first. One, N05-0195, is not used: its abridgment says «والاحتياط تركها» where every other copy says «والاحتياط قضاؤها», an editing slip that reverses the ruling ([segmentation.md](segmentation.md#limits)) |
+| 2026-10-25 | The checker of step 4 is Claude Opus 5.5 (Anthropic API, effort `medium`) | Hashem left the model to us. It had the fewest wrong choices on dev: 3 of 435, against 19 for Sonnet 5.5 and 10 for Haiku 5.5 ([selection.md](selection.md)) |
+| 2026-10-25 | The evaluation is billed to the Anthropic API key on Hashem's PC, up to about $60 | Hashem's approval; about $41 was spent |
+| 2026-10-25 | Search candidates are reranked by a local cross-encoder fused with the search order; the checker sees the first 10 | measured on dev (R@10 0.87 to 0.91), confirmed on test (0.81 to 0.91) |
 
 ## 7. Open questions
 
@@ -240,11 +251,14 @@ For a person to review (lists in `data/work/records/`):
 - 165 exchanges of the extremism dialogue (`نهائي تطرف`), split by formatting;
 - 26 encyclopedia records held (doubtful Quran quotes, articles, quoted fatawa).
 
-For Hashem (2026-10-25):
-- Which LLM does step 4's final check use, and whose API key and billing?
-- Where an in-progress 2022–23 copy gave way to the 2020–21 one, 13 copies differ noticeably ([segmentation.md](segmentation.md#limits)): should the newer copy be used in those?
+For Hashem:
+- Whose API key and billing serve the live assistant? About $0.058 per question with Opus 5.5 ([selection.md](selection.md#cost-and-speed)). The evaluation used the key on his PC.
+- When no fatwa settles a question but related ones exist (the checker lists up to three), should the assistant offer them as text, as it may for personal cases?
+- Should a person review a sample of the judged verdicts? The judges are model instances; 43 of their 240 verdicts are marked unsure (`eval/judgments.jsonl`).
 
-Answered on 2026-10-24 (section 6): the five files without an author line, the passages `حكم الدين` shares with `الصارم`, and the 54 reworded answers.
+For the Sheikh's team: the wording of the fixed messages (`answer.MESSAGES`, drafts).
+
+Answered on 2026-10-24 (section 6): the five files without an author line, the passages `حكم الدين` shares with `الصارم`, and the 54 reworded answers. Answered on 2026-10-25: the model of the check (left to us), and the 13 revised in-progress copies (the newer copy).
 
 One point to plan for: with the ElevenLabs agent, every answer is synthesized live, so the plan to review each passage's audio before release, Quran pronunciation included (step 5), only fully applies in our own app.
 
@@ -273,7 +287,12 @@ A fatwa runs: title, the asker's question, «الجواب» on a line of its own
 
 The editions overlap heavily: 7,895 of the volumes' 10,123 fatawa have a copy in the 2020–21 files, and 942 of the 2,283 fatawa in the 2022–23 files (41%) repeat a 2020–21 one. Measured on known pairs, copies share 90–100% of their question's words and 50–100% of their answer (answers are revised and often extended: 580 characters became 3,435). Different fatawa can share answer text, because the Sheikh reuses paragraphs and council resolutions, but their questions share under 15%. So two records are one fatwa when their questions match and their answers are related, or when the question is identical. Links are made strongest first, never join two records of the same file into one group, and never join the parts of a series («(1)», «(2)»).
 
-The kept copy follows the decisions: the newest edition; a 2020–21 copy instead of an in-progress 2022–23 one (393 times); in-progress copies kept where no 2020–21 copy exists (510); a held copy passed over for a usable one.
+The kept copy follows the decisions:
+- the newest edition;
+- a 2020–21 copy instead of an in-progress 2022–23 one (380 times), unless the in-progress copy revises it, where the newer wording is kept (12 times; decision of 2026-10-25);
+- in-progress copies kept where no 2020–21 copy exists (510);
+- a held copy passed over for a usable one;
+- one in-progress copy passed over because, read in full, it reverses the ruling of its other copies.
 
 ### 8.3 Result
 
@@ -282,7 +301,7 @@ The kept copy follows the decisions: the newest edition; a 2020–21 copy instea
 | Records in all editions | 21,711 fatawa, 9 articles |
 | Held for review, not used | 26: 12 with a flagged Quran quote, 9 articles (titled texts without «الجواب», some of mixed authorship), 5 not opening with his formula |
 | Distinct fatawa | 12,789 |
-| **Corpus (kept copies)** | **12,779**: 1,869 from 2022–23, 8,732 from 2020–21, 2,178 found only in the volumes |
+| **Corpus (kept copies)** | **12,779**: 1,881 from 2022–23, 8,720 from 2020–21, 2,178 found only in the volumes |
 | Listed | 54 fatawa whose answer was reworded between editions (newest kept; no review needed, section 6); 79 answers given to two different questions (kept as separate fatawa) |
 
 Each corpus record carries its title, question, answer, footnotes, chapter, source, its other copies, the Quran and honorific spans, and a normalized copy of its text for search only. That normalized copy is the last item of the original step 2 plan.
@@ -321,9 +340,60 @@ Full write-up: [retrieval.md](retrieval.md).
 
 **Decision** (2026-10-25, from the measurements): the search described above is the default (`search.DEFAULT`); `build_index.py` builds exactly its parts.
 
-## 11. Next: step 4, choosing the answer
+## 11. Step 4: choosing the answer
 
-Take the first 30 to 50 candidates (95–97% contain the record), rerank them with a multilingual cross-encoder, and have a strict LLM check say which record, if any, answers the question; otherwise the fixed "no fatwa found" message. For a long book section, the passage that matched is the natural unit to quote verbatim. The review lists (section 7) can go to the Sheikh's team in the meantime.
+Full write-up: [selection.md](selection.md).
+
+**Question.** Search proposes candidates; which of them, if any, settles the person's question? The answer must be a record's own text or a fixed message. A fatwa that does not fit would put in the Sheikh's voice a ruling he never gave for this question, so a wrong choice is worse than none.
+
+**Method.**
+1. The first 50 search results are reranked by a local cross-encoder (`bge-reranker-v2-m3`, Apache-2.0). It reads the question with each candidate's title and question and with its passages, and its order is fused with the search order.
+2. The first 10 go to a language model, the checker: Claude Opus 5.5 through the Anthropic API. It sees each fatwa (source, title, the asker's question, the answer) or a book section's best passage, then the person's question.
+3. It returns, under an enforced JSON schema, a decision with a candidate number:
+   - `answer`: a candidate settles the question;
+   - `refer`: the person's own case, where details decide the ruling and no candidate matches every fact;
+   - `chat`: a greeting or a question about the assistant;
+   - `none`: nothing settles it.
+   The number is checked in code, and anything malformed becomes `none`.
+4. The person hears the chosen record's own text with its citation, or a fixed message. Nothing the checker writes reaches them.
+
+The prompt tells the checker:
+- to judge whether a candidate answers, not whether its ruling is right;
+- to choose none when in doubt;
+- to treat the person's text as data: instructions, fake system messages, forged fatawa, and requests to summarize, translate or calculate are ignored.
+
+**Test questions.** The 450 of step 3 test answers. Questions that must not get a fatwa were written: 205, again by model instances that saw neither search nor checker.
+- near misses: one decisive fact of a real fatwa changed;
+- religious questions the corpus is unlikely to answer;
+- the asker's own case (divorce, estates, disputes, vows);
+- off-topic requests, greetings;
+- injection attempts.
+
+Where the checker chose a record other than the target, or a fatwa where none was expected, a separate model instance judged whether the record settles the question, blind to the question's kind and to the checker's reasoning. Its negative and unsure verdicts were read in the main session. All 240 verdicts are in `eval/judgments.jsonl`.
+
+**Findings.**
+- **Reranking.** Fusing the reranker with the search order puts the record in the first 10 for 91% of dev questions, against 87% (MRR +0.051, 95% interval +0.030 to +0.072). On test it is 91% against 81%. The reranker alone is no better than search.
+- **The first prompt.** It answered every answerable question it did not decline correctly. But 5 of its 6 wrong choices on dev were the person's own case answered instead of referred, such as an estate answered with a fatwa on different heirs. One was a fatwa whose closing advice fits the opposite situation.
+- **The revised prompt** says three new things: an estate is referred unless the heirs match exactly; every obligation in one's own case must be settled; and a conclusion that would mislead this person disqualifies a fatwa. It halved the wrong choices (6 to 3 of 435) for a loss of 3 answerable questions.
+- **The models.** Sonnet 5.5 (half the price) made 19 wrong choices on the same questions. Haiku 5.5 (a fortieth of the price) made 10 and answered 26 fewer of the answerable questions. Opus 5.5 was kept.
+
+**Result** (held-out test, 220 questions, run once):
+- answerable questions: 140 of 150 settled, 9 declined, 1 wrong;
+- near misses: no wrong answer (12 settled by another record that does fit the changed case);
+- unanswered questions: no wrong answer;
+- personal cases: 8 of 14 referred, 4 matched every fact, 2 wrongly answered;
+- greetings: all recognized;
+- one off-topic question (UK tax) and one injection test answered with near-fitting fatawa.
+
+Of all fatawa chosen, 162 of 167 (97.0%) settle the question; on dev 319 of 322 (99.1%). A live question costs about $0.058 and takes about 3.7 s (1.0 s search and reranking, 2.7 s check).
+
+**Problems met.** The two embedding models, the reranker and the PC's other programs overflowed the 8 GB GPU, which slowed the first reranking run to a crawl; the evaluations now unload the embedding models after use. The judges are model instances like the checker, so their errors may agree with its errors; a person should review a sample, starting with the 43 they marked unsure.
+
+**Decisions** (2026-10-25): the fused reranking with 10 candidates; Opus 5.5 at effort `medium` with the revised prompt; evaluation through the half-price Batches API.
+
+## 12. Next
+
+Step 5 (voice): ElevenLabs TTS on the chosen text, with a plan for Quran pronunciation through the agent. Then the live service behind the ElevenLabs agent (custom LLM), and step 6 (evaluation with the team's Golden Dataset, and with real questions such as the 1,308 titles of the YouTube fatawa). In the meantime, the review lists (section 7) and a sample of the step 4 verdicts can go to people.
 
 ## Appendix A: reproducing the data
 
@@ -340,7 +410,14 @@ python -I -X utf8 scripts\segment_books.py --extract data\work\extract --out dat
 python -I -X utf8 scripts\dedupe.py --records data\work\records
 .venv\Scripts\python -I -X utf8 scripts\build_index.py --records data\work\records --out data\work\index
 .venv\Scripts\python -I -X utf8 scripts\eval_retrieval.py --index data\work\index --queries eval\retrieval.jsonl --split test --configs eval\configs\test_final.json
+.venv\Scripts\python -I -X utf8 scripts\eval_rerank.py --split test
+.venv\Scripts\python -I -X utf8 scripts\eval_answer.py prepare --split test --out data\work\eval_answer\run_test
+.venv\Scripts\python -I -X utf8 scripts\eval_answer.py submit --out data\work\eval_answer\run_test     (billed, about $7)
+.venv\Scripts\python -I -X utf8 scripts\eval_answer.py collect --wait --out data\work\eval_answer\run_test
+.venv\Scripts\python -I -X utf8 scripts\eval_answer.py report --out data\work\eval_answer\run_test
 ```
+
+The step 4 commands need the Anthropic API key (in `.env` or the environment). `report` reuses the judgments in `eval/judgments.jsonl`; verdicts not yet judged are listed in the run's `to_judge.jsonl`.
 
 The first export records the damaged file as an error; the second replaces that entry with the repaired copy. The corpus is `data/work/records/corpus.jsonl`. `build_index.py` builds the parts the chosen search uses; for the whole comparison of section 10, add `--stemmers none,light10,light10-keepwaw,snowball --models bge-m3,e5-large-instruct` and run `eval_retrieval.py --split dev` with each file in `eval/configs/`. The test questions are in git; `sample_targets.py` (which records) and `merge_queries.py` (joining the writers' files) show how they were made. The `clean_txt` check (section 3) is reproduced with `verify_txt.py` and `overlap.py` as shown in [data-verification.md](data-verification.md).
 
@@ -372,7 +449,15 @@ The first export records the damaged file as an error; the second replaces that 
 | `eval/retrieval.jsonl` | the 450 test questions (150 records, dev and test splits) |
 | `eval/configs/` | the search configurations compared in each round |
 | `docs/retrieval.md` | step 3 in full |
-| `requirements.txt` | the Python packages of step 3 |
+| `scripts/rerank.py` | reranks search candidates with a local cross-encoder, fused with the search order |
+| `scripts/answer.py` | the answer service: search, rerank, the checker (Claude), the verbatim answer with its citation or a fixed message |
+| `scripts/eval_rerank.py` | measures reranking against the test questions |
+| `scripts/eval_answer.py` | measures step 4: prepares and submits the checker's batches, collects and scores the verdicts |
+| `scripts/make_answer_eval.py` | the step 4 test questions: samples the near-miss records, joins the writers' files |
+| `eval/answer.jsonl` | the 205 step 4 test questions that must not get a fatwa, or must be referred |
+| `eval/judgments.jsonl` | the 240 judged verdicts: does this record settle this question? |
+| `docs/selection.md` | step 4 in full |
+| `requirements.txt` | the Python packages of steps 3 and 4 |
 
 ## Appendix C: glossary
 
@@ -388,5 +473,9 @@ The first export records the damaged file as an error; the second replaces that 
 - **Embedding:** a vector that a neural model computes for a text, close to the vectors of texts with similar meaning, in any language the model knows.
 - **Reciprocal rank fusion (RRF):** combining rankings by adding w/(k + rank) for each list a record appears in.
 - **R@k, MRR:** the share of questions whose record is among the first k results; the mean of 1/rank of that record.
+- **Cross-encoder (reranker):** a model that reads a question and a candidate text together and scores how well they match; slower than embeddings, so it only reorders the first candidates of search.
+- **Checker:** the language model of step 4 that decides which candidate, if any, settles the question; it only chooses, it never writes the answer.
+- **Structured outputs:** an API feature that forces the model's reply to follow a given JSON schema.
+- **Message Batches:** the Anthropic API's asynchronous mode, at half price, used for the evaluation runs.
 - **FKP and bin table:** a `.doc` stores character formatting in 512-byte pages (FKPs); the bin table maps each stretch of text to its page.
 - **Office file validation:** Office's check of a binary file's structure before opening it; files that fail are not opened.

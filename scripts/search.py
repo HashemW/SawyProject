@@ -26,7 +26,8 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 from dedupe import DIACRITICS, FOLD as LETTERS, search_text  # noqa: E402
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-# Models live in the project's data folder (gitignored, on the data drive), not in the user cache.
+# Models live in the project's data folder (gitignored, on the data drive), unless HF_HOME already
+# names a cache (on Hashem's PC it does, user-wide: D:\Caches\huggingface).
 os.environ.setdefault("HF_HOME", str(ROOT / "data" / "models"))
 os.environ.setdefault("HF_HUB_DISABLE_TELEMETRY", "1")
 
@@ -190,7 +191,14 @@ class Index:
         self.n = len(self.ids)
         self.passages = [json.loads(l) for l in open(self.folder / "passages.jsonl", encoding="utf-8")]
         self.p_rec = np.array([p["rec"] for p in self.passages], np.int64)
+        self.by_rec = collections.defaultdict(list)
+        for p in self.passages:
+            self.by_rec[p["rec"]].append(p)
         self._bm25, self._dense, self._models = {}, {}, {}
+
+    def record_passages(self, rec):
+        """A record's passages, in order."""
+        return self.by_rec[rec]
 
     def built(self, kind, **part):
         """Refuse a part of the folder that index.json does not list for its corpus (left from an older build)."""
@@ -218,6 +226,16 @@ class Index:
         if name not in self._models:
             self._models[name] = load_model(name)
         return self._models[name]
+
+    def unload_models(self):
+        """Free the embedding models, once the questions' vectors are computed (with the reranker
+        and the PC's other programs they overflow the 8 GB GPU, which then slows to a crawl)."""
+        import gc
+        import torch
+        self._models.clear()
+        gc.collect()
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
 
     def query_vector(self, query, model):
         return self.query_vectors([query], model)[0]
@@ -276,11 +294,12 @@ class Index:
                 fused[i] += w / (k + r + 1)
         return sorted(fused, key=lambda i: (-fused[i], i)), fused
 
-    def search(self, query, k=20, weights=None):
+    def search(self, query, k=20, weights=None, vectors=None):
         """The first k records for a question, each with its fused score, its rank in each list and
-        the passage that matched best. weights: {component: weight}, by default DEFAULT."""
+        the passage that matched best. weights: {component: weight}, by default DEFAULT; vectors: the
+        question's embeddings by model, if already computed."""
         weights = weights or DEFAULT
-        lists = self.rankings(query, weights)
+        lists = self.rankings(query, weights, vectors=vectors)
         order, fused = self.fuse(lists, weights)
         ranks = {c: {i: r + 1 for r, (i, _) in enumerate(ranked)} for c, (ranked, _) in lists.items()}
         hits = []

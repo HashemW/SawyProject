@@ -1,5 +1,5 @@
-# Search index and evaluation (scripts/build_index.py, search.py, eval_retrieval.py).
-# The other scripts use only the standard library.
+# Search index, reranking, the answer service and their evaluation (scripts/build_index.py,
+# search.py, rerank.py, answer.py, eval_*.py). The other scripts use only the standard library.
 #
 # Setup (Windows, Python 3.13), in a project venv:
 #   python -m venv .venv
@@ -15,3 +15,5 @@ safetensors==0.8.0
 PyStemmer==3.1.0
 numpy==2.5.4
 scipy==1.18.1
+# The checker of step 4 (Claude through the Anthropic API; the key goes in .env, never in code).
+anthropic==2.3.0
